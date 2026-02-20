@@ -42,7 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const login = async (email: string, password: string) => {
-        const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, { email, password });
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://connectcall-backend.onrender.com';
+        const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
         const { token, user } = response.data;
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
@@ -52,8 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signup = async (username: string, email: string, password: string) => {
-        console.log('Connecting to API:', process.env.NEXT_PUBLIC_API_URL);
-        const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/signup`, { username, email, password });
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://connectcall-backend.onrender.com';
+        console.log('Connecting to API:', API_URL);
+        const response = await axios.post(`${API_URL}/api/auth/signup`, { username, email, password });
         const { token, user } = response.data;
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
