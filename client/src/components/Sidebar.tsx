@@ -29,9 +29,13 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
 
         try {
             const baseUrl = getApiBaseUrl();
+            console.log('--- Search Attempt ---');
+            console.log('Base URL:', baseUrl);
+            console.log('Query:', query);
             const response = await axios.get(`${baseUrl}/api/users/search?query=${query}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            console.log('Search Results:', response.data);
             setSearchResults(response.data);
         } catch (err) {
             console.error(err);

@@ -3,6 +3,10 @@ const User = require('../models/User');
 const searchUsers = async (req, res) => {
     try {
         const { query } = req.query;
+        console.log('--- Backend Search Start ---');
+        console.log('Received Query:', query);
+        console.log('Searcher ID:', req.user.userId);
+
         if (!query) return res.status(400).json({ message: 'Search query is required' });
 
         // Search by uniqueId or username
@@ -14,6 +18,8 @@ const searchUsers = async (req, res) => {
             _id: { $ne: req.user.userId } // Exclude self
         }).select('uniqueId username profilePhoto statusMessage isOnline');
 
+        console.log('Users Found Count:', users.length);
+        console.log('Users:', users);
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
