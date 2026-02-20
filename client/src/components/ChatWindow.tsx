@@ -169,13 +169,6 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
                     </div>
                 )}
             </header>
-                <div className="flex items-center space-x-6 text-[#54656f] dark:text-[#aebac1]">
-                    <Video size={20} className="cursor-pointer" onClick={() => callUser(otherParticipant?._id)} />
-                    <Phone size={20} className="cursor-pointer" onClick={() => callUser(otherParticipant?._id)} />
-                    <div className="h-6 w-[1px] bg-[#d1d7db] dark:bg-[#2a3942]"></div>
-                    <MoreVertical size={20} className="cursor-pointer" />
-                </div>
-            </header>
 
             <div className="flex-1 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
                 <MessageList messages={messages} userId={user?.id} chatId={chat._id} />
