@@ -42,7 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const login = async (email: string, password: string) => {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://connectcall-backend.onrender.com';
+        const envUrl = process.env.NEXT_PUBLIC_API_URL;
+        const API_URL = (envUrl && envUrl !== 'undefined' && envUrl !== 'null')
+            ? envUrl
+            : 'https://connectcall-backend.onrender.com';
         const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
         const { token, user } = response.data;
         localStorage.setItem('token', token);
@@ -53,7 +56,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signup = async (username: string, email: string, password: string) => {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://connectcall-backend.onrender.com';
+        const envUrl = process.env.NEXT_PUBLIC_API_URL;
+        const API_URL = (envUrl && envUrl !== 'undefined' && envUrl !== 'null')
+            ? envUrl
+            : 'https://connectcall-backend.onrender.com';
         console.log('Connecting to API:', API_URL);
         const response = await axios.post(`${API_URL}/api/auth/signup`, { username, email, password });
         const { token, user } = response.data;

@@ -18,7 +18,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     useEffect(() => {
         if (user) {
-            const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://connectcall-backend.onrender.com';
+            const envSocketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+            const SOCKET_URL = (envSocketUrl && envSocketUrl !== 'undefined' && envSocketUrl !== 'null')
+                ? envSocketUrl
+                : 'https://connectcall-backend.onrender.com';
             const newSocket = io(SOCKET_URL);
 
             newSocket.on('connect', () => {
