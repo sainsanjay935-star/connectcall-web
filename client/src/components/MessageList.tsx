@@ -1,0 +1,119 @@
+"use client";
+
+import React, { useRef, useEffect, useState } from 'react';
+import { Paperclip } from 'lucide-react';
+import { decryptMessage } from '@/utils/encryption';
+import { useSocket } from '@/context/SocketContext';
+
+interface MessageListProps {
+    messages: any[];
+    userId?: string;
+    chatId: string;
+}
+
+export default function MessageList({ messages: initialMessages, userId, chatId }: MessageListProps) {
+    const [messages, setMessages] = useState(initialMessages);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        setMessages(initialMessages);
+    }, [initialMessages]);
+
+    useEffect(() => {
+        scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleReaction = ({ messageId, reactions }: any) => {
+            setMessages(prev => prev.map(m => m._id === messageId ? { ...m, reactions } : m));
+        };
+
+        socket.on('reaction-added', handleReaction);
+
+        return () => {
+            socket.off('reaction-added', handleReaction);
+        };
+    }, [socket]);
+
+    const addReaction = (messageId: string, emoji: string) => {
+        socket?.emit('add-reaction', { messageId, emoji, userId, chatId });
+    };
+
+    return (
+        <div className="flex flex-col space-y-2 p-6">
+            {messages.map((msg, idx) => {
+                const isMine = msg.sender?._id === userId || msg.sender === userId;
+                return (
+                    <div
+                        key={msg._id || idx}
+                        className={`flex w-full ${isMine ? 'justify-end' : 'justify-start'}`}
+                    >
+                        <div
+                            className={`group relative max-w-[70%] px-3 py-1 shadow-sm ${isMine
+                                ? 'chat-bubble-mine bg-[#dcf8c6] dark:bg-[#005c4b]'
+                                : 'chat-bubble-others bg-white dark:bg-[#202c33]'
+                                }`}
+                        >
+                            <div className={`absolute ${isMine ? '-left-8' : '-right-8'} top-0 hidden group-hover:block`}>
+                                <div className="flex space-x-1 rounded-full bg-white p-1 shadow-md dark:bg-[#2a3942]">
+                                    {['❤️', '👍', '😂', '😮'].map(emoji => (
+                                        <span
+                                            key={emoji}
+                                            className="cursor-pointer hover:scale-125 transition"
+                                            onClick={() => addReaction(msg._id, emoji)}
+                                        >
+                                            {emoji}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {msg.messageType === 'image' ? (
+                                <div className="mb-1 overflow-hidden rounded">
+                                    <img src={msg.fileUrl} alt="sent image" className="max-h-[300px] w-full object-cover" />
+                                </div>
+                            ) : msg.messageType === 'video' ? (
+                                <video controls className="mb-1 max-h-[300px] w-full rounded">
+                                    <source src={msg.fileUrl} type="video/mp4" />
+                                </video>
+                            ) : msg.messageType === 'voice' ? (
+                                <audio controls className="mb-1 w-full max-w-[200px]">
+                                    <source src={msg.fileUrl} />
+                                </audio>
+                            ) : msg.messageType === 'document' ? (
+                                <a href={msg.fileUrl} target="_blank" className="mb-1 flex items-center space-x-2 text-blue-500 hover:underline">
+                                    <Paperclip size={16} />
+                                    <span>{msg.content}</span>
+                                </a>
+                            ) : (
+                                <p className="text-sm dark:text-[#e9edef] whitespace-pre-wrap">
+                                    {msg.messageType === 'text' ? decryptMessage(msg.content) : msg.content}
+                                </p>
+                            )}
+
+                            {msg.reactions?.length > 0 && (
+                                <div className="absolute -bottom-2 right-2 flex -space-x-1">
+                                    {msg.reactions.map((r: any, i: number) => (
+                                        <span key={i} className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs shadow-sm dark:bg-[#2a3942]">
+                                            {r.emoji}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="mt-1 flex items-center justify-end space-x-1">
+                                <span className="text-[10px] text-[#667781] dark:text-[#8696a0]">
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+            <div ref={scrollRef}></div>
+        </div>
+    );
+}
