@@ -18,7 +18,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     useEffect(() => {
         if (user) {
-            const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+            const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || '');
 
             newSocket.on('connect', () => {
                 setConnected(true);
