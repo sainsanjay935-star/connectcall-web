@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Phone, Video, MoreVertical } from 'lucide-react';
+import { User, Phone, Video, MoreVertical, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { useWebRTC } from '@/hooks/useWebRTC';
