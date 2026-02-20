@@ -21,8 +21,8 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
     const [messages, setMessages] = useState<any[]>([]);
     const [isTyping, setIsTyping] = useState(false);
 
-    // Initial participant extraction
-    const initialOtherUser = chat.participants.find((p: any) => p._id !== user?.id);
+    // Initial participant extraction (only for 1-on-1)
+    const initialOtherUser = chat.isGroupChat ? null : chat.participants.find((p: any) => p._id !== user?.id);
     const [otherParticipant, setOtherParticipant] = useState(initialOtherUser);
 
     const {
@@ -35,11 +35,15 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
         leaveCall,
         name,
         stream
-    } = useWebRTC(otherParticipant?._id);
+    } = useWebRTC(chat.isGroupChat ? null : otherParticipant?._id);
 
     useEffect(() => {
-        const found = chat.participants.find((p: any) => p._id !== user?.id);
-        setOtherParticipant(found);
+        if (!chat.isGroupChat) {
+            const found = chat.participants.find((p: any) => p._id !== user?.id);
+            setOtherParticipant(found);
+        } else {
+            setOtherParticipant(null);
+        }
     }, [chat, user]);
 
     useEffect(() => {
@@ -73,7 +77,7 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
         const handleStopTyping = () => setIsTyping(false);
 
         const handleStatusChange = ({ userId, isOnline, lastSeen }: any) => {
-            if (otherParticipant?._id === userId) {
+            if (!chat.isGroupChat && otherParticipant?._id === userId) {
                 setOtherParticipant((prev: any) => ({ ...prev, isOnline, lastSeen }));
             }
         };
@@ -89,13 +93,32 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
             socket.off('stop typing', handleStopTyping);
             socket.off('user-status-change', handleStatusChange);
         };
-    }, [socket, chat._id, otherParticipant?._id]);
+    }, [socket, chat._id, otherParticipant?._id, chat.isGroupChat]);
 
     const formatLastSeen = (date: any) => {
         if (!date) return 'recently';
         const d = new Date(date);
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
+
+    const getChatHeaderInfo = () => {
+        if (chat.isGroupChat) {
+            return {
+                name: chat.groupName,
+                status: `${chat.participants.length} members`,
+                photo: null,
+                isGroup: true
+            };
+        }
+        return {
+            name: otherParticipant?.username,
+            status: isTyping ? 'typing...' : (otherParticipant?.isOnline ? 'online' : `last seen at ${formatLastSeen(otherParticipant?.lastSeen)}`),
+            photo: otherParticipant?.profilePhoto,
+            isGroup: false
+        };
+    };
+
+    const header = getChatHeaderInfo();
 
     return (
         <div className="flex h-full flex-col bg-[#efeae2] dark:bg-[#0b141a]">
@@ -118,30 +141,34 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
 
             <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-4 py-2 dark:bg-[#202c33]">
                 <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 overflow-hidden rounded-full bg-[#dfe5e7]">
-                        {otherParticipant?.profilePhoto ? (
-                            <img src={otherParticipant.profilePhoto} alt={otherParticipant.username} className="h-full w-full object-cover" />
+                    <div className="h-10 w-10 overflow-hidden rounded-full bg-[#dfe5e7] dark:bg-[#2a3942] flex items-center justify-center">
+                        {header.photo ? (
+                            <img src={header.photo} alt={header.name} className="h-full w-full object-cover" />
                         ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[#54656f]">
-                                <User size={24} />
-                            </div>
+                            header.isGroup ? <Users size={24} className="text-[#54656f] dark:text-[#aebac1]" /> : <User size={24} className="text-[#54656f] dark:text-[#aebac1]" />
                         )}
                     </div>
                     <div>
-                        <h3 className="font-semibold text-[#111b21] dark:text-[#e9edef]">{otherParticipant?.username}</h3>
-                        <p className="text-xs text-[#667781] dark:text-[#8696a0]">
-                            {isTyping ? (
-                                <span className="text-[#25d366] animate-pulse font-medium">typing...</span>
-                            ) : (
-                                otherParticipant?.isOnline ? (
-                                    <span className="text-[#25d366] font-medium">online</span>
-                                ) : (
-                                    `last seen at ${formatLastSeen(otherParticipant?.lastSeen)}`
-                                )
-                            )}
+                        <h3 className="font-semibold text-[#111b21] dark:text-[#e9edef]">{header.name}</h3>
+                        <p className={`text-xs ${isTyping || header.status === 'online' ? 'text-[#25d366] font-medium' : 'text-[#667781] dark:text-[#8696a0]'}`}>
+                            {header.status}
                         </p>
                     </div>
                 </div>
+                {!header.isGroup && (
+                    <div className="flex items-center space-x-6 text-[#54656f] dark:text-[#aebac1]">
+                        <Video size={20} className="cursor-pointer" onClick={() => callUser(otherParticipant?._id)} />
+                        <Phone size={20} className="cursor-pointer" onClick={() => callUser(otherParticipant?._id)} />
+                        <div className="h-6 w[1px] bg-[#d1d7db] dark:bg-[#2a3942]"></div>
+                        <MoreVertical size={20} className="cursor-pointer" />
+                    </div>
+                )}
+                {header.isGroup && (
+                    <div className="flex items-center space-x-6 text-[#54656f] dark:text-[#aebac1]">
+                        <MoreVertical size={20} className="cursor-pointer" />
+                    </div>
+                )}
+            </header>
                 <div className="flex items-center space-x-6 text-[#54656f] dark:text-[#aebac1]">
                     <Video size={20} className="cursor-pointer" onClick={() => callUser(otherParticipant?._id)} />
                     <Phone size={20} className="cursor-pointer" onClick={() => callUser(otherParticipant?._id)} />
@@ -155,6 +182,6 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
             </div>
 
             <MessageInput chatId={chat._id} onMessageSent={(m) => setMessages((prev) => [...prev, m])} />
-        </div>
+        </div >
     );
 }
