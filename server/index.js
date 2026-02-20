@@ -132,6 +132,34 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('edit-message', async ({ messageId, content, chatId }) => {
+        try {
+            const message = await Message.findById(messageId);
+            if (message && !message.isDeleted) {
+                message.content = content;
+                message.isEdited = true;
+                await message.save();
+                io.in(chatId).emit('message-edited', { messageId, content, isEdited: true });
+            }
+        } catch (err) {
+            console.error('Edit error:', err);
+        }
+    });
+
+    socket.on('delete-message', async ({ messageId, chatId }) => {
+        try {
+            const message = await Message.findById(messageId);
+            if (message) {
+                message.isDeleted = true;
+                message.content = 'This message was deleted';
+                await message.save();
+                io.in(chatId).emit('message-deleted', { messageId });
+            }
+        } catch (err) {
+            console.error('Delete error:', err);
+        }
+    });
+
     socket.on('disconnect', async () => {
         const userId = users.get(socket.id);
         if (userId) {
