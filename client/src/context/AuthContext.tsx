@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signup = async (username: string, email: string, password: string) => {
+        console.log('Connecting to API:', process.env.NEXT_PUBLIC_API_URL);
         const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/signup`, { username, email, password });
         const { token, user } = response.data;
         localStorage.setItem('token', token);
