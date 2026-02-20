@@ -179,6 +179,16 @@ io.on('connection', (socket) => {
     });
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('CRITICAL GLOBAL ERROR:', err);
+    res.status(500).json({
+        message: `Global Error: ${err.message}`,
+        error: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
