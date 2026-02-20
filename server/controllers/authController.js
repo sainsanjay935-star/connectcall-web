@@ -67,9 +67,9 @@ const signup = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('SERVER SIGNUP ERROR:', error);
+        console.error('SERVER SIGNUP BOOM:', error);
         res.status(500).json({
-            message: `Signup Error: ${error.message}`,
+            message: `BOOM Signup Error: ${error.message}`,
             error: error.message
         });
     }
