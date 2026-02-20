@@ -1,20 +1,10 @@
-const User = require('../models/User');
+// Utility to generate a random ID
+// This file NO LONGER imports the User model to avoid circular dependencies.
+// Uniqueness check is now handled by the caller (controller).
 
-const generateUniqueId = async () => {
-    let isUnique = false;
-    let uniqueId = '';
-
-    while (!isUnique) {
-        const randomDigits = Math.floor(10000 + Math.random() * 90000);
-        uniqueId = `WEB${randomDigits}`;
-
-        const existingUser = await User.findOne({ uniqueId });
-        if (!existingUser) {
-            isUnique = true;
-        }
-    }
-
-    return uniqueId;
+const generateUniqueId = () => {
+    const randomDigits = Math.floor(10000 + Math.random() * 90000);
+    return `WEB${randomDigits}`;
 };
 
 module.exports = { generateUniqueId };

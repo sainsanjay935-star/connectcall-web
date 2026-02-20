@@ -25,6 +25,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to get clean API Base URL
+const getApiBaseUrl = () => {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    // Check if it's a valid string and starts with http
+    if (envUrl && envUrl !== 'undefined' && envUrl !== 'null' && envUrl.startsWith('http')) {
+        return envUrl;
+    }
+    // Final Production Fallback
+    return 'https://connectcall-backend.onrender.com';
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -42,32 +53,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const login = async (email: string, password: string) => {
-        const envUrl = process.env.NEXT_PUBLIC_API_URL;
-        const API_URL = (envUrl && envUrl !== 'undefined' && envUrl !== 'null')
-            ? envUrl
-            : 'https://connectcall-backend.onrender.com';
-        const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
-        const { token, user } = response.data;
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        setToken(token);
-        setUser(user);
+        const baseUrl = getApiBaseUrl();
+        const response = await axios.post(`${baseUrl}/api/auth/login`, { email, password });
+        const { token: newToken, user: newUser } = response.data;
+        localStorage.setItem('token', newToken);
+        localStorage.setItem('user', JSON.stringify(newUser));
+        setToken(newToken);
+        setUser(newUser);
         router.push('/dashboard');
     };
 
     const signup = async (username: string, email: string, password: string) => {
-        const envUrl = process.env.NEXT_PUBLIC_API_URL;
-        const API_URL = (envUrl && envUrl !== 'undefined' && envUrl !== 'null')
-            ? envUrl
-            : 'https://connectcall-backend.onrender.com';
-        console.log('Connecting to API:', API_URL);
-        const response = await axios.post(`${API_URL}/api/auth/signup`, { username, email, password });
-        const { token, user } = response.data;
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        setToken(token);
-        setUser(user);
-        router.push('/dashboard');
+        const baseUrl = getApiBaseUrl();
+        console.log('--- Sign Up Attempt ---');
+        console.log('Using Base URL:', baseUrl);
+
+        try {
+            const response = await axios.post(`${baseUrl}/api/auth/signup`, { username, email, password });
+            const { token: newToken, user: newUser } = response.data;
+            localStorage.setItem('token', newToken);
+            localStorage.setItem('user', JSON.stringify(newUser));
+            setToken(newToken);
+            setUser(newUser);
+            router.push('/dashboard');
+        } catch (err: any) {
+            console.error('Sign Up Axios Error:', err);
+            throw err;
+        }
     };
 
     const logout = () => {
