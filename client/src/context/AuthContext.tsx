@@ -9,6 +9,7 @@ interface User {
     uniqueId: string;
     username: string;
     email: string;
+    role: string;
     profilePhoto?: string;
     statusMessage?: string;
 }

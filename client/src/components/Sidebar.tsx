@@ -67,7 +67,9 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                 <div className="flex space-x-4 text-[#54656f] dark:text-[#aebac1]">
                     <MessageSquare size={24} className="cursor-pointer" />
                     <MoreVertical size={24} className="cursor-pointer" />
-                    <LogOut size={24} className="cursor-pointer" onClick={logout} title="Logout" />
+                    <button onClick={logout} title="Logout" className="hover:text-red-500 transition">
+                        <LogOut size={24} className="cursor-pointer" />
+                    </button>
                 </div>
             </header>
 
