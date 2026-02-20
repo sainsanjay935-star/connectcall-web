@@ -5,6 +5,7 @@ import { User, Phone, Video, MoreVertical, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { useWebRTC } from '@/hooks/useWebRTC';
+import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
@@ -49,7 +50,8 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
     useEffect(() => {
         const fetchMessages = async () => {
             try {
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/chats/message/${chat._id}`, {
+                const baseUrl = getApiBaseUrl();
+                const response = await axios.get(`${baseUrl}/api/chats/message/${chat._id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setMessages(response.data);

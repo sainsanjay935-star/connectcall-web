@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { getSocketUrl } from '@/utils/constants';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -18,10 +19,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     useEffect(() => {
         if (user) {
-            const envSocketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
-            const SOCKET_URL = (envSocketUrl && envSocketUrl !== 'undefined' && envSocketUrl !== 'null')
-                ? envSocketUrl
-                : 'https://connectcall-backend.onrender.com';
+            const SOCKET_URL = getSocketUrl();
             const newSocket = io(SOCKET_URL);
 
             newSocket.on('connect', () => {

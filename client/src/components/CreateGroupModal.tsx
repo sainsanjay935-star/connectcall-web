@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, Check, User, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 
 interface CreateGroupModalProps {
@@ -25,7 +26,8 @@ export default function CreateGroupModal({ onClose, onCreated }: CreateGroupModa
                 return;
             }
             try {
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/users?search=${search}`, {
+                const baseUrl = getApiBaseUrl();
+                const response = await axios.get(`${baseUrl}/api/users?search=${search}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setResults(response.data);
@@ -57,7 +59,8 @@ export default function CreateGroupModal({ onClose, onCreated }: CreateGroupModa
 
         setLoading(true);
         try {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/chats/group`, {
+            const baseUrl = getApiBaseUrl();
+            const response = await axios.post(`${baseUrl}/api/chats/group`, {
                 name: groupName,
                 users: JSON.stringify(selectedUsers.map(u => u._id))
             }, {

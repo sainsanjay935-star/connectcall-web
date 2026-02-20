@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import { User, ShieldAlert, Trash2, Ban, CheckCircle, Users, Activity } from 'lucide-react';
 
@@ -14,11 +15,12 @@ export default function AdminPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                const baseUrl = getApiBaseUrl();
                 const [usersRes, statsRes] = await Promise.all([
-                    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`, {
+                    axios.get(`${baseUrl}/api/admin/users`, {
                         headers: { Authorization: `Bearer ${token}` }
                     }),
-                    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats`, {
+                    axios.get(`${baseUrl}/api/admin/stats`, {
                         headers: { Authorization: `Bearer ${token}` }
                     })
                 ]);
@@ -36,8 +38,9 @@ export default function AdminPage() {
 
     const toggleBlock = async (userId: string, isBlocked: boolean) => {
         try {
+            const baseUrl = getApiBaseUrl();
             const endpoint = isBlocked ? 'unblock' : 'block';
-            await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/${endpoint}/${userId}`, {}, {
+            await axios.put(`${baseUrl}/api/admin/${endpoint}/${userId}`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUsers(users.map(u => u._id === userId ? { ...u, isBlocked: !isBlocked } : u));
@@ -49,7 +52,8 @@ export default function AdminPage() {
     const removeUser = async (userId: string) => {
         if (!window.confirm('Are you sure you want to delete this user?')) return;
         try {
-            await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/user/${userId}`, {
+            const baseUrl = getApiBaseUrl();
+            await axios.delete(`${baseUrl}/api/admin/user/${userId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUsers(users.filter(u => u._id !== userId));

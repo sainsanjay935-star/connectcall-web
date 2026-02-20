@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
+import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import { User } from 'lucide-react';
 
@@ -19,7 +20,8 @@ export default function ChatList({ onChatSelect, selectedChatId }: ChatListProps
 
     const fetchChats = async () => {
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/chats`, {
+            const baseUrl = getApiBaseUrl();
+            const response = await axios.get(`${baseUrl}/api/chats`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setChats(response.data);

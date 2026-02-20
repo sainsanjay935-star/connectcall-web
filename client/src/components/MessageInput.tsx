@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Smile, Paperclip, Send, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
+import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import { VoiceRecorder } from '@/utils/VoiceRecorder';
@@ -37,7 +38,8 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
             formData.append('file', file);
 
             try {
-                const uploadRes = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/media/upload`, formData, {
+                const baseUrl = getApiBaseUrl();
+                const uploadRes = await axios.post(`${baseUrl}/api/media/upload`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                         Authorization: `Bearer ${token}`
@@ -45,7 +47,7 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
                 });
 
                 const response = await axios.post(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/chats/message`,
+                    `${baseUrl}/api/chats/message`,
                     { chatId, content: 'Voice Message', messageType: 'voice', fileUrl: uploadRes.data.url },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
@@ -66,7 +68,8 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
         formData.append('file', file);
 
         try {
-            const uploadRes = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/media/upload`, formData, {
+            const baseUrl = getApiBaseUrl();
+            const uploadRes = await axios.post(`${baseUrl}/api/media/upload`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`
@@ -78,7 +81,7 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
                     file.type.startsWith('audio/') ? 'voice' : 'document';
 
             const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/chats/message`,
+                `${baseUrl}/api/chats/message`,
                 { chatId, content: file.name, messageType, fileUrl: uploadRes.data.url },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -98,8 +101,9 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
         setContent('');
 
         try {
+            const baseUrl = getApiBaseUrl();
             const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/chats/message`,
+                `${baseUrl}/api/chats/message`,
                 { chatId, content: encryptedContent, messageType: 'text' },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

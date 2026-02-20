@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MoreVertical, MessageSquare, User, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import ChatList from './ChatList';
 
@@ -26,9 +27,9 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
             return;
         }
 
-        setIsSearching(true);
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/users/search?query=${query}`, {
+            const baseUrl = getApiBaseUrl();
+            const response = await axios.get(`${baseUrl}/api/users/search?query=${query}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setSearchResults(response.data);
@@ -39,7 +40,8 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
 
     const createChat = async (userId: string) => {
         try {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/chats`,
+            const baseUrl = getApiBaseUrl();
+            const response = await axios.post(`${baseUrl}/api/chats`,
                 { userId },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

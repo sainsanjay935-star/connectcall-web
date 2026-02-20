@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { getApiBaseUrl } from '@/utils/constants';
 
 interface User {
     id: string;
@@ -24,17 +25,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Helper to get clean API Base URL
-const getApiBaseUrl = () => {
-    const envUrl = process.env.NEXT_PUBLIC_API_URL;
-    // Check if it's a valid string and starts with http
-    if (envUrl && envUrl !== 'undefined' && envUrl !== 'null' && envUrl.startsWith('http')) {
-        return envUrl;
-    }
-    // Final Production Fallback
-    return 'https://connectcall-backend.onrender.com';
-};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
