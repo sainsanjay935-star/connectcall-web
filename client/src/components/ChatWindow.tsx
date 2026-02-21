@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Phone, Video, MoreVertical, Users } from 'lucide-react';
+import { User, Phone, Video, MoreVertical, Users, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { useWebRTC } from '@/hooks/useWebRTC';
@@ -14,9 +14,10 @@ import CallScreen from './CallScreen';
 
 interface ChatWindowProps {
     chat: any;
+    onBack?: () => void;
 }
 
-export default function ChatWindow({ chat }: ChatWindowProps) {
+export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
     const { user, token } = useAuth();
     const { socket } = useSocket();
     const [messages, setMessages] = useState<any[]>([]);
@@ -141,8 +142,16 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
                 />
             )}
 
-            <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-4 py-2 dark:bg-[#202c33]">
-                <div className="flex items-center space-x-3">
+            <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-2 md:px-4 py-2 dark:bg-[#202c33]">
+                <div className="flex items-center space-x-2 md:space-x-3">
+                    {/* Back Button for mobile */}
+                    <div
+                        className="flex md:hidden cursor-pointer items-center justify-center p-1 text-[#54656f] dark:text-[#aebac1]"
+                        onClick={onBack}
+                    >
+                        <ArrowLeft size={24} />
+                    </div>
+
                     <div className="h-10 w-10 overflow-hidden rounded-full bg-[#dfe5e7] dark:bg-[#2a3942] flex items-center justify-center">
                         {header.photo ? (
                             <img src={header.photo} alt={header.name} className="h-full w-full object-cover" />
@@ -151,7 +160,7 @@ export default function ChatWindow({ chat }: ChatWindowProps) {
                         )}
                     </div>
                     <div>
-                        <h3 className="font-semibold text-[#111b21] dark:text-[#e9edef]">{header.name}</h3>
+                        <h3 className="font-semibold text-[#111b21] dark:text-[#e9edef] truncate max-w-[120px] md:max-w-none">{header.name}</h3>
                         <p className={`text-xs ${isTyping || header.status === 'online' ? 'text-[#25d366] font-medium' : 'text-[#667781] dark:text-[#8696a0]'}`}>
                             {header.status}
                         </p>

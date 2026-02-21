@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, MoreVertical, MessageSquare, User, LogOut } from 'lucide-react';
+import { Search, MoreVertical, MessageSquare, User, LogOut, Settings, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
@@ -17,6 +17,8 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
 
     const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
@@ -38,6 +40,28 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
             setSearchResults(response.data);
         } catch (err: any) {
             console.error('[Sidebar] Search Error:', err.response?.data || err.message);
+        }
+    };
+
+    const handleResetData = async () => {
+        if (!window.confirm('WARNING: This will permanently delete all your chats and messages to save storage. This action cannot be undone. Are you sure?')) {
+            return;
+        }
+
+        setIsResetting(true);
+        try {
+            const baseUrl = getApiBaseUrl();
+            await axios.post(`${baseUrl}/api/users/reset-data`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            console.log('[Sidebar] Account data reset successful');
+            window.location.reload(); // Refresh to clear all states and fetch empty lists
+        } catch (err: any) {
+            console.error('[Sidebar] Reset Error:', err.response?.data || err.message);
+            alert('Failed to reset account data. Please try again.');
+        } finally {
+            setIsResetting(false);
+            setShowMenu(false);
         }
     };
 
@@ -69,12 +93,35 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                         </div>
                     )}
                 </div>
-                <div className="flex space-x-4 text-[#54656f] dark:text-[#aebac1]">
+                <div className="flex space-x-2 text-[#54656f] dark:text-[#aebac1]">
                     <MessageSquare size={24} className="cursor-pointer" />
-                    <MoreVertical size={24} className="cursor-pointer" />
-                    <button onClick={logout} title="Logout" className="hover:text-red-500 transition">
-                        <LogOut size={24} className="cursor-pointer" />
-                    </button>
+                    <div className="relative">
+                        <MoreVertical
+                            size={24}
+                            className="cursor-pointer hover:bg-[#d1d7db] dark:hover:bg-[#3b4a54] rounded-full p-0.5"
+                            onClick={() => setShowMenu(!showMenu)}
+                        />
+
+                        {showMenu && (
+                            <div className="absolute right-0 top-10 z-50 w-48 rounded-md bg-white py-2 shadow-xl dark:bg-[#233138]">
+                                <button
+                                    onClick={handleResetData}
+                                    disabled={isResetting}
+                                    className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-[#3b4a54] hover:bg-[#f5f6f6] disabled:opacity-50 dark:text-[#d1d7db] dark:hover:bg-[#182229]"
+                                >
+                                    <RotateCcw size={18} />
+                                    <span>{isResetting ? 'Resetting...' : 'Reset Account'}</span>
+                                </button>
+                                <button
+                                    onClick={logout}
+                                    className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-red-500 hover:bg-[#f5f6f6] dark:hover:bg-[#182229]"
+                                >
+                                    <LogOut size={18} />
+                                    <span>Log Out</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </header>
 
