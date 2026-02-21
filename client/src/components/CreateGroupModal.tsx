@@ -27,12 +27,13 @@ export default function CreateGroupModal({ onClose, onCreated }: CreateGroupModa
             }
             try {
                 const baseUrl = getApiBaseUrl();
-                const response = await axios.get(`${baseUrl}/api/users?search=${search}`, {
+                console.log('[CreateGroupModal] Search Attempt:', { baseUrl, search });
+                const response = await axios.get(`${baseUrl}/api/users/search?query=${search}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setResults(response.data);
-            } catch (err) {
-                console.error(err);
+            } catch (err: any) {
+                console.error('[CreateGroupModal] Search Error:', err.response?.data || err.message);
             }
         };
 

@@ -27,18 +27,17 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
             return;
         }
 
+        setIsSearching(true); // Toggle search view
         try {
             const baseUrl = getApiBaseUrl();
-            console.log('--- Search Attempt ---');
-            console.log('Base URL:', baseUrl);
-            console.log('Query:', query);
+            console.log('[Sidebar] Search Attempt:', { baseUrl, query });
             const response = await axios.get(`${baseUrl}/api/users/search?query=${query}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            console.log('Search Results:', response.data);
+            console.log('[Sidebar] Search Results:', response.data);
             setSearchResults(response.data);
-        } catch (err) {
-            console.error(err);
+        } catch (err: any) {
+            console.error('[Sidebar] Search Error:', err.response?.data || err.message);
         }
     };
 
