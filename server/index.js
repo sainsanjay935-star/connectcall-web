@@ -11,8 +11,10 @@ const server = http.createServer(app);
 // CORS configuration for production
 const allowedOrigins = [
     'http://localhost:3000',
-    'https://connectcall-web.vercel.app', // Placeholder for Vercel URL
-    process.env.FRONTEND_URL
+    'https://connectcall-web.vercel.app',
+    'https://client-amit33.vercel.app',
+    process.env.FRONTEND_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
 ].filter(Boolean);
 
 const io = new Server(server, {
@@ -47,10 +49,15 @@ app.use('/api/admin', adminRoutes);
 // MongoDB Connection
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/connectcall';
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('Successfully connected to Production MongoDB Atlas'))
+    .then(() => console.log(`Successfully connected to MongoDB: ${MONGO_URI.split('@')[1] || 'Local'}`))
     .catch(err => {
-        console.error('MongoDB connection error:', err);
-        process.exit(1);
+        console.error('CRITICAL: MongoDB connection error:', err);
+        console.error('MONGO_URI used:', MONGO_URI);
+        // Don't exit process in some environments to allow debugging via logs
+        if (process.env.NODE_ENV === 'production') {
+            console.error('Exiting due to DB connection failure in production');
+            process.exit(1);
+        }
     });
 
 // Basic Route
