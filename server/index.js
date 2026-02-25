@@ -13,23 +13,34 @@ const allowedOrigins = [
     'http://localhost:3000',
     'https://connectcall-web.vercel.app',
     'https://client-amit33.vercel.app',
-    process.env.FRONTEND_URL,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+    process.env.FRONTEND_URL
 ].filter(Boolean);
 
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        const isAllowed = allowedOrigins.indexOf(origin) !== -1 ||
+            origin.endsWith('.vercel.app') ||
+            origin.startsWith('http://localhost');
+
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            console.log('CORS Blocked for origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+};
+
 const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins,
-        methods: ['GET', 'POST'],
-        credentials: true
-    }
+    cors: corsOptions
 });
 
 // Middleware
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
