@@ -19,6 +19,23 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
     const [isSearching, setIsSearching] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
+    const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchSuggested = async () => {
+            if (!token) return;
+            try {
+                const baseUrl = getApiBaseUrl();
+                const response = await axios.get(`${baseUrl}/api/users/suggested`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setSuggestedUsers(response.data);
+            } catch (err) {
+                console.error('[Sidebar] Suggested Error:', err);
+            }
+        };
+        fetchSuggested();
+    }, [token]);
 
     const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
@@ -173,7 +190,44 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                         )}
                     </div>
                 ) : (
-                    <ChatList onChatSelect={onChatSelect} selectedChatId={selectedChatId} />
+                    <ChatList
+                        onChatSelect={onChatSelect}
+                        selectedChatId={selectedChatId}
+                        emptyState={
+                            <div className="flex flex-col items-center justify-center p-6 text-center">
+                                <p className="text-sm font-semibold text-[#111b21] dark:text-[#e9edef] mb-4">Start a conversation</p>
+
+                                {suggestedUsers.length > 0 && (
+                                    <div className="w-full space-y-2 mt-4">
+                                        <p className="text-[11px] uppercase tracking-widest text-[#667781] dark:text-[#8696a0] font-bold text-left px-2 mb-2">Suggested Users</p>
+                                        <div className="space-y-1">
+                                            {suggestedUsers.map(u => (
+                                                <div
+                                                    key={u._id}
+                                                    onClick={() => createChat(u._id)}
+                                                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-[#f5f6f6] dark:hover:bg-[#202c33] cursor-pointer transition-colors"
+                                                >
+                                                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#dfe5e7]">
+                                                        {u.profilePhoto ? <img src={u.profilePhoto} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center text-[#54656f]"><User size={20} /></div>}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-sm font-medium dark:text-[#e9edef]">{u.username}</p>
+                                                        <p className="text-[10px] text-whatsapp-green font-bold">{u.uniqueId}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="mt-8 pt-6 border-t border-[#f0f2f5] dark:border-[#2a3942] w-full">
+                                    <p className="text-xs text-[#667781] dark:text-[#8696a0]">
+                                        Use the search bar above to look for users by their <span className="font-bold text-whatsapp-green">WhatsApp ID</span> or name.
+                                    </p>
+                                </div>
+                            </div>
+                        }
+                    />
                 )}
             </div>
         </div>

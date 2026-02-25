@@ -68,4 +68,20 @@ const resetUserData = async (req, res) => {
     }
 };
 
-module.exports = { searchUsers, getProfile, resetUserData };
+const getSuggestedUsers = async (req, res) => {
+    try {
+        // Find 10 users that are NOT the current user
+        const users = await User.find({
+            _id: { $ne: req.user.userId }
+        })
+            .select('uniqueId username profilePhoto statusMessage isOnline')
+            .limit(10)
+            .sort({ createdAt: -1 });
+
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+module.exports = { searchUsers, getProfile, resetUserData, getSuggestedUsers };
