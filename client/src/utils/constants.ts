@@ -1,19 +1,25 @@
 export const getApiBaseUrl = () => {
+    // Priority: .env variable -> fallback
     const envUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (envUrl && envUrl !== 'undefined' && envUrl !== 'null' && envUrl.trim() !== '' && envUrl.startsWith('http')) {
+
+    // Check if it's a valid string starting with http
+    if (typeof envUrl === 'string' && envUrl.trim() !== '' && envUrl.startsWith('http') && !envUrl.includes('undefined')) {
         return envUrl;
     }
+
+    // Hardcoded fallback for production
     const fallback = 'https://connectcall-backend.onrender.com';
-    console.warn(`[getApiBaseUrl] API_URL not found or invalid (${envUrl}), falling back to: ${fallback}`);
+    console.warn(`[getApiBaseUrl] API_URL invalid (${envUrl}), using fallback: ${fallback}`);
     return fallback;
 };
 
 export const getSocketUrl = () => {
     const envUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
-    if (envUrl && envUrl !== 'undefined' && envUrl !== 'null' && envUrl.trim() !== '' && envUrl.startsWith('http')) {
+
+    if (typeof envUrl === 'string' && envUrl.trim() !== '' && envUrl.startsWith('http') && !envUrl.includes('undefined')) {
         return envUrl;
     }
+
     const fallback = 'https://connectcall-backend.onrender.com';
-    console.warn(`[getSocketUrl] SOCKET_URL not found or invalid (${envUrl}), falling back to: ${fallback}`);
     return fallback;
 };
