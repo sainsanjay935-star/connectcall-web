@@ -22,7 +22,7 @@ export default function RootLayout({
             <body className={inter.className}>
                 <AuthProvider>
                     <SocketProvider>
-                        <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#0b141a]">
+                        <div className="h-full bg-[#f0f2f5] dark:bg-[#0b141a]">
                             {children}
                         </div>
                     </SocketProvider>

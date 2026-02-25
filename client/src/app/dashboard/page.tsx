@@ -18,7 +18,7 @@ export default function DashboardPage() {
 
     return (
         <CallProvider>
-            <div className="flex h-screen w-full bg-[#f0f2f5] dark:bg-[#0b141a] overflow-hidden">
+            <div className="flex h-[100dvh] w-full bg-[#f0f2f5] dark:bg-[#0b141a] overflow-hidden">
                 <div className="flex h-full w-full overflow-hidden">
                     {/* Sidebar - hidden on mobile when a chat is selected */}
                     <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-[35%] lg:w-[30%] md:min-w-[350px] border-r border-[#d1d7db] dark:border-[#2a3942] transition-all duration-300 ease-in-out`}>
