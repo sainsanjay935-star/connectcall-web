@@ -19,7 +19,23 @@ export const useWebRTC = (otherUserId: string | null) => {
 
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);
-    const connectionRef = useRef<Peer.Instance>();
+    const connectionRef = useRef<Peer.Instance | null>(null);
+
+    const resetState = useCallback(() => {
+        setReceivingCall(false);
+        setCallAccepted(false);
+        setCallEnded(false);
+        setCaller("");
+        setCallerSignal(null);
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+        if (connectionRef.current) {
+            connectionRef.current.destroy();
+            connectionRef.current = null;
+        }
+    }, [stream]);
 
     useEffect(() => {
         if (!socket) return;
@@ -33,16 +49,19 @@ export const useWebRTC = (otherUserId: string | null) => {
 
         socket.on("call-answered", (data) => {
             setCallAccepted(true);
-            connectionRef.current?.signal(data.answer);
+            if (connectionRef.current) {
+                connectionRef.current.signal(data.answer);
+            }
         });
 
         socket.on("ice-candidate", (data) => {
-            connectionRef.current?.signal(data.candidate);
+            if (connectionRef.current) {
+                connectionRef.current.signal(data.candidate);
+            }
         });
 
         socket.on("call-ended", () => {
-            setCallEnded(true);
-            connectionRef.current?.destroy();
+            resetState();
         });
 
         return () => {
@@ -51,67 +70,90 @@ export const useWebRTC = (otherUserId: string | null) => {
             socket.off("ice-candidate");
             socket.off("call-ended");
         };
-    }, [socket]);
+    }, [socket, resetState]);
+
+    const peerOptions = {
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+            ]
+        },
+        trickle: true,
+    };
 
     const callUser = (id: string) => {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((currentStream) => {
-            setStream(currentStream);
-            if (myVideo.current) myVideo.current.srcObject = currentStream;
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then((currentStream) => {
+                setStream(currentStream);
+                if (myVideo.current) myVideo.current.srcObject = currentStream;
 
-            const peer = new Peer({
-                initiator: true,
-                trickle: false,
-                stream: currentStream,
-            });
-
-            peer.on("signal", (data) => {
-                socket?.emit("call-user", {
-                    to: id,
-                    offer: data,
-                    from: user?.id,
-                    name: user?.username,
+                const peer = new Peer({
+                    initiator: true,
+                    stream: currentStream,
+                    ...peerOptions
                 });
-            });
 
-            peer.on("stream", (currentStream) => {
-                if (userVideo.current) userVideo.current.srcObject = currentStream;
-            });
+                peer.on("signal", (data) => {
+                    if (data.type === 'offer') {
+                        socket?.emit("call-user", {
+                            to: id,
+                            offer: data,
+                            from: user?.id,
+                            name: user?.username,
+                        });
+                    } else if ((data as any).candidate) {
+                        socket?.emit("ice-candidate", { to: id, candidate: (data as any).candidate });
+                    }
+                });
 
-            connectionRef.current = peer;
-        });
+                peer.on("stream", (remoteStream) => {
+                    if (userVideo.current) userVideo.current.srcObject = remoteStream;
+                });
+
+                connectionRef.current = peer;
+            })
+            .catch(err => console.error("Failed to get local stream", err));
     };
 
     const answerCall = () => {
         setCallAccepted(true);
 
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((currentStream) => {
-            setStream(currentStream);
-            if (myVideo.current) myVideo.current.srcObject = currentStream;
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then((currentStream) => {
+                setStream(currentStream);
+                if (myVideo.current) myVideo.current.srcObject = currentStream;
 
-            const peer = new Peer({
-                initiator: false,
-                trickle: false,
-                stream: currentStream,
-            });
+                const peer = new Peer({
+                    initiator: false,
+                    stream: currentStream,
+                    ...peerOptions
+                });
 
-            peer.on("signal", (data) => {
-                socket?.emit("answer-call", { answer: data, to: caller });
-            });
+                peer.on("signal", (data) => {
+                    if (data.type === 'answer') {
+                        socket?.emit("answer-call", { answer: data, to: caller });
+                    } else if ((data as any).candidate) {
+                        socket?.emit("ice-candidate", { to: caller, candidate: (data as any).candidate });
+                    }
+                });
 
-            peer.on("stream", (currentStream) => {
-                if (userVideo.current) userVideo.current.srcObject = currentStream;
-            });
+                peer.on("stream", (remoteStream) => {
+                    if (userVideo.current) userVideo.current.srcObject = remoteStream;
+                });
 
-            peer.signal(callerSignal);
-            connectionRef.current = peer;
-        });
+                if (callerSignal) {
+                    peer.signal(callerSignal);
+                }
+                connectionRef.current = peer;
+            })
+            .catch(err => console.error("Failed to get local stream", err));
     };
 
     const leaveCall = () => {
-        setCallEnded(true);
-        connectionRef.current?.destroy();
-        socket?.emit("end-call", { to: otherUserId });
-        window.location.reload();
+        socket?.emit("end-call", { to: otherUserId || caller });
+        resetState();
     };
 
     return {

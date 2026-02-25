@@ -82,9 +82,9 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
     };
 
     return (
-        <div className="flex h-full flex-col bg-white dark:bg-[#111b21]">
-            <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-4 dark:bg-[#202c33]">
-                <div className="h-10 w-10 overflow-hidden rounded-full bg-[#dfe5e7]">
+        <div className="flex h-full flex-col bg-white dark:bg-[#111b21] overflow-hidden">
+            <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-4 dark:bg-[#202c33] border-b border-[#d1d7db] dark:border-[#2a3942] shrink-0">
+                <div className="h-10 w-10 overflow-hidden rounded-full bg-[#dfe5e7] border border-black/5">
                     {user?.profilePhoto ? (
                         <img src={user.profilePhoto} alt="Profile" className="h-full w-full object-cover" />
                     ) : (
@@ -93,28 +93,28 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                         </div>
                     )}
                 </div>
-                <div className="flex space-x-2 text-[#54656f] dark:text-[#aebac1]">
-                    <MessageSquare size={24} className="cursor-pointer" />
+                <div className="flex items-center space-x-3 text-[#54656f] dark:text-[#aebac1]">
+                    <MessageSquare size={22} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" />
                     <div className="relative">
                         <MoreVertical
-                            size={24}
-                            className="cursor-pointer hover:bg-[#d1d7db] dark:hover:bg-[#3b4a54] rounded-full p-0.5"
+                            size={22}
+                            className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-full p-0.5 transition-colors"
                             onClick={() => setShowMenu(!showMenu)}
                         />
 
                         {showMenu && (
-                            <div className="absolute right-0 top-10 z-50 w-48 rounded-md bg-white py-2 shadow-xl dark:bg-[#233138]">
+                            <div className="absolute right-0 top-10 z-[60] w-52 rounded-md bg-white py-2 shadow-2xl dark:bg-[#233138] border border-black/5 dark:border-white/5">
                                 <button
                                     onClick={handleResetData}
                                     disabled={isResetting}
-                                    className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-[#3b4a54] hover:bg-[#f5f6f6] disabled:opacity-50 dark:text-[#d1d7db] dark:hover:bg-[#182229]"
+                                    className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-[#3b4a54] hover:bg-[#f5f6f6] disabled:opacity-50 dark:text-[#d1d7db] dark:hover:bg-[#182229] transition-colors"
                                 >
                                     <RotateCcw size={18} />
                                     <span>{isResetting ? 'Resetting...' : 'Reset Account'}</span>
                                 </button>
                                 <button
                                     onClick={logout}
-                                    className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-red-500 hover:bg-[#f5f6f6] dark:hover:bg-[#182229]"
+                                    className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-red-500 hover:bg-[#f5f6f6] dark:hover:bg-[#182229] transition-colors"
                                 >
                                     <LogOut size={18} />
                                     <span>Log Out</span>
@@ -125,30 +125,30 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                 </div>
             </header>
 
-            <div className="p-2">
-                <div className="relative flex items-center rounded-lg bg-[#f0f2f5] px-3 dark:bg-[#202c33]">
-                    <Search size={18} className="text-[#54656f] dark:text-[#8696a0]" />
+            <div className="p-2 shrink-0">
+                <div className="relative flex items-center rounded-xl bg-[#f0f2f5] px-4 dark:bg-[#202c33] transition-all focus-within:bg-white dark:focus-within:bg-[#2a3942] focus-within:shadow-sm">
+                    <Search size={16} className="text-[#54656f] dark:text-[#8696a0] shrink-0" />
                     <input
                         type="text"
-                        placeholder="Search users by ID or Name"
-                        className="w-full bg-transparent p-2 text-sm text-[#3b4a54] outline-none dark:text-[#d1d7db]"
+                        placeholder="Search users..."
+                        className="w-full bg-transparent p-2.5 text-sm text-[#3b4a54] outline-none dark:text-[#d1d7db] placeholder:text-[#667781] dark:placeholder:text-[#8696a0]"
                         value={searchQuery}
                         onChange={handleSearch}
                     />
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 {isSearching ? (
-                    <div>
+                    <div className="divide-y divide-[#f0f2f5] dark:divide-[#2a3942]">
                         {searchResults.length > 0 ? (
                             searchResults.map((u) => (
                                 <div
                                     key={u._id}
-                                    className="flex cursor-pointer items-center space-x-3 px-4 py-3 hover:bg-[#f5f6f6] dark:hover:bg-[#2a3942]"
+                                    className="flex cursor-pointer items-center space-x-3 px-4 py-3 hover:bg-[#f5f6f6] dark:hover:bg-[#2a3942] active:bg-[#ebebeb] dark:active:bg-[#182229] transition-colors"
                                     onClick={() => createChat(u._id)}
                                 >
-                                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#dfe5e7]">
+                                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#dfe5e7] border border-black/5">
                                         {u.profilePhoto ? (
                                             <img src={u.profilePhoto} alt={u.username} className="h-full w-full object-cover" />
                                         ) : (
@@ -157,17 +157,19 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 overflow-hidden border-b border-[#f0f2f5] pb-3 dark:border-[#2a3942]">
+                                    <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between">
-                                            <h3 className="font-semibold text-[#111b21] dark:text-[#e9edef]">{u.username}</h3>
-                                            <span className="text-xs text-whatsapp-green">{u.uniqueId}</span>
+                                            <h3 className="font-semibold text-[15px] text-[#111b21] dark:text-[#e9edef] truncate">{u.username}</h3>
+                                            <span className="text-[10px] bg-whatsapp-light dark:bg-whatsapp-dark text-whatsapp-green px-1.5 py-0.5 rounded ml-2 shrink-0">{u.uniqueId}</span>
                                         </div>
-                                        <p className="truncate text-sm text-[#667781] dark:text-[#8696a0]">{u.statusMessage}</p>
+                                        <p className="truncate text-[13px] text-[#667781] dark:text-[#8696a0] mt-0.5">{u.statusMessage || 'Hey there! I am using ConnectCall.'}</p>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <p className="p-4 text-center text-sm text-[#667781] dark:text-[#8696a0]">No users found</p>
+                            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                                <p className="text-sm text-[#667781] dark:text-[#8696a0]">No users found for "{searchQuery}"</p>
+                            </div>
                         )}
                     </div>
                 ) : (

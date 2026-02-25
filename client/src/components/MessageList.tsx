@@ -81,13 +81,13 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
                 return (
                     <div
                         key={msg._id || idx}
-                        className={`flex w-full ${isMine ? 'justify-end' : 'justify-start'}`}
+                        className={`flex w-full mb-1 ${isMine ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
-                            className={`group relative max-w-[70%] px-3 py-1 shadow-sm ${isMine
-                                ? 'chat-bubble-mine bg-[#dcf8c6] dark:bg-[#005c4b]'
-                                : 'chat-bubble-others bg-white dark:bg-[#202c33]'
-                                } ${isDeleted ? 'opacity-70 italic' : ''}`}
+                            className={`group relative max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm rounded-xl ${isMine
+                                ? 'bg-[#dcf8c6] dark:bg-[#005c4b] rounded-tr-none'
+                                : 'bg-white dark:bg-[#202c33] rounded-tl-none'
+                                } ${isDeleted ? 'opacity-70 italic' : ''} transition-all duration-200 ease-in-out`}
                         >
                             {!isMine && !isDeleted && (
                                 <div className="absolute -right-12 top-0 hidden group-hover:block">

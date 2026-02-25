@@ -142,43 +142,39 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
                 />
             )}
 
-            <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-2 md:px-4 py-2 dark:bg-[#202c33]">
-                <div className="flex items-center space-x-2 md:space-x-3">
+            <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-3 md:px-4 py-2 dark:bg-[#202c33] border-b border-[#d1d7db] dark:border-[#2a3942] z-10 shadow-sm md:shadow-none">
+                <div className="flex items-center space-x-2 md:space-x-3 overflow-hidden">
                     {/* Back Button for mobile */}
                     <div
-                        className="flex md:hidden cursor-pointer items-center justify-center p-1 text-[#54656f] dark:text-[#aebac1]"
+                        className="flex md:hidden cursor-pointer items-center justify-center p-2 -ml-1 text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5 rounded-full"
                         onClick={onBack}
                     >
-                        <ArrowLeft size={24} />
+                        <ArrowLeft size={20} />
                     </div>
 
-                    <div className="h-10 w-10 overflow-hidden rounded-full bg-[#dfe5e7] dark:bg-[#2a3942] flex items-center justify-center">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#dfe5e7] dark:bg-[#2a3942] flex items-center justify-center">
                         {header.photo ? (
                             <img src={header.photo} alt={header.name} className="h-full w-full object-cover" />
                         ) : (
                             header.isGroup ? <Users size={24} className="text-[#54656f] dark:text-[#aebac1]" /> : <User size={24} className="text-[#54656f] dark:text-[#aebac1]" />
                         )}
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-[#111b21] dark:text-[#e9edef] truncate max-w-[120px] md:max-w-none">{header.name}</h3>
-                        <p className={`text-xs ${isTyping || header.status === 'online' ? 'text-[#25d366] font-medium' : 'text-[#667781] dark:text-[#8696a0]'}`}>
+                    <div className="flex flex-col overflow-hidden">
+                        <h3 className="font-semibold text-[15px] md:text-base text-[#111b21] dark:text-[#e9edef] truncate">{header.name}</h3>
+                        <p className={`text-[11px] md:text-xs truncate ${isTyping || header.status === 'online' ? 'text-[#25d366] font-medium' : 'text-[#667781] dark:text-[#8696a0]'}`}>
                             {header.status}
                         </p>
                     </div>
                 </div>
-                {!header.isGroup && (
-                    <div className="flex items-center space-x-6 text-[#54656f] dark:text-[#aebac1]">
-                        <Video size={20} className="cursor-pointer" onClick={() => callUser(otherParticipant?._id)} />
-                        <Phone size={20} className="cursor-pointer" onClick={() => callUser(otherParticipant?._id)} />
-                        <div className="h-6 w[1px] bg-[#d1d7db] dark:bg-[#2a3942]"></div>
-                        <MoreVertical size={20} className="cursor-pointer" />
-                    </div>
-                )}
-                {header.isGroup && (
-                    <div className="flex items-center space-x-6 text-[#54656f] dark:text-[#aebac1]">
-                        <MoreVertical size={20} className="cursor-pointer" />
-                    </div>
-                )}
+                <div className="flex items-center space-x-4 md:space-x-6 text-[#54656f] dark:text-[#aebac1]">
+                    {!header.isGroup && (
+                        <>
+                            <Video size={18} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" onClick={() => callUser(otherParticipant?._id)} />
+                            <Phone size={18} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" onClick={() => callUser(otherParticipant?._id)} />
+                        </>
+                    )}
+                    <MoreVertical size={18} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" />
+                </div>
             </header>
 
             <div className="flex-1 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">

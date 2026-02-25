@@ -138,14 +138,20 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
     };
 
     return (
-        <div className="relative flex min-h-[62px] items-center bg-[#f0f2f5] px-4 py-2 dark:bg-[#2a3942]">
-            <div className="flex space-x-3 text-[#54656f] dark:text-[#aebac1]">
-                <Smile
-                    size={24}
-                    className="cursor-pointer"
+        <div className="relative flex min-h-[62px] items-center bg-[#f0f2f5] px-2 md:px-4 py-2 dark:bg-[#202c33] shrink-0 border-t border-[#d1d7db] dark:border-[#2a3942]">
+            <div className="flex items-center space-x-1 md:space-x-3 text-[#54656f] dark:text-[#aebac1]">
+                <button
+                    className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                />
-                <Paperclip size={24} className="cursor-pointer" onClick={() => fileInputRef.current?.click()} />
+                >
+                    <Smile size={24} />
+                </button>
+                <button
+                    className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <Paperclip size={24} />
+                </button>
                 <input
                     type="file"
                     hidden
@@ -155,33 +161,44 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
             </div>
 
             {showEmojiPicker && (
-                <div className="absolute bottom-16 left-4 z-50">
+                <div className="absolute bottom-16 left-2 md:left-4 z-[100] shadow-2xl">
                     <EmojiPicker
                         onEmojiClick={(emojiData) => setContent(prev => prev + emojiData.emoji)}
                         width={300}
                         height={400}
+                        skinTonesDisabled
+                        searchDisabled={window.innerWidth < 640}
                     />
                 </div>
             )}
 
-            <input
-                type="text"
-                placeholder="Type a message"
-                className="mx-3 flex-1 rounded-lg bg-white p-2.5 text-sm outline-none dark:bg-[#33404b] dark:text-[#d1d7db]"
-                value={content}
-                onChange={typingHandler}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            />
+            <div className="flex-1 mx-1 md:mx-3 relative">
+                <input
+                    type="text"
+                    placeholder="Type a message"
+                    className="w-full rounded-xl bg-white px-4 py-2.5 text-[15px] outline-none dark:bg-[#2a3942] dark:text-[#e9edef] placeholder:text-[#667781] dark:placeholder:text-[#8696a0] shadow-sm"
+                    value={content}
+                    onChange={typingHandler}
+                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                />
+            </div>
 
-            <div className="text-[#54656f] dark:text-[#aebac1]">
+            <div className="flex items-center justify-center w-12 h-12 shrink-0">
                 {content.trim() ? (
-                    <Send size={24} className="cursor-pointer text-whatsapp-green" onClick={sendMessage} />
+                    <button
+                        onClick={sendMessage}
+                        className="p-2.5 bg-[#00a884] text-white rounded-full shadow-lg hover:bg-[#008f6f] transition-all transform active:scale-90"
+                    >
+                        <Send size={20} />
+                    </button>
                 ) : (
-                    isRecording ? (
-                        <MicOff size={24} className="cursor-pointer text-red-500 animate-pulse" onClick={handleVoiceMessage} />
-                    ) : (
-                        <Mic size={24} className="cursor-pointer" onClick={handleVoiceMessage} />
-                    )
+                    <button
+                        onClick={handleVoiceMessage}
+                        className={`p-2.5 rounded-full transition-all transform active:scale-90 ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5'
+                            }`}
+                    >
+                        {isRecording ? <MicOff size={22} /> : <Mic size={22} />}
+                    </button>
                 )}
             </div>
         </div>
