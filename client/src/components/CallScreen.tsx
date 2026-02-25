@@ -13,6 +13,21 @@ interface CallScreenProps {
 export default function CallScreen({ myVideoRef, userVideoRef, onEndCall, stream }: CallScreenProps) {
     const [isMuted, setIsMuted] = React.useState(false);
     const [isVideoOff, setIsVideoOff] = React.useState(false);
+    const [callDuration, setCallDuration] = React.useState(0);
+
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            setCallDuration(prev => prev + 1);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const formatDuration = (seconds: number) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
 
     const toggleMute = () => {
         if (stream) {
@@ -59,8 +74,9 @@ export default function CallScreen({ myVideoRef, userVideoRef, onEndCall, stream
 
                 {/* Call Info Overlay (Top Center) */}
                 <div className="absolute top-10 left-0 right-0 flex flex-col items-center pointer-events-none">
-                    <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                        <span className="text-white text-sm font-medium animate-pulse">On Call</span>
+                    <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex flex-col items-center">
+                        <span className="text-white text-[10px] font-medium opacity-60 uppercase tracking-widest">Video Call</span>
+                        <span className="text-white text-xl font-bold tracking-tight">{formatDuration(callDuration)}</span>
                     </div>
                 </div>
 

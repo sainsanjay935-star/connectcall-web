@@ -4,13 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { User, Phone, Video, MoreVertical, Users, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
-import { useWebRTC } from '@/hooks/useWebRTC';
+import { useCall } from '@/context/CallContext';
 import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import IncomingCallModal from './IncomingCallModal';
-import CallScreen from './CallScreen';
 
 interface ChatWindowProps {
     chat: any;
@@ -20,24 +18,13 @@ interface ChatWindowProps {
 export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
     const { user, token } = useAuth();
     const { socket } = useSocket();
+    const { callUser } = useCall();
     const [messages, setMessages] = useState<any[]>([]);
     const [isTyping, setIsTyping] = useState(false);
 
     // Initial participant extraction (only for 1-on-1)
     const initialOtherUser = chat.isGroupChat ? null : chat.participants.find((p: any) => p._id !== user?.id);
     const [otherParticipant, setOtherParticipant] = useState(initialOtherUser);
-
-    const {
-        myVideo,
-        userVideo,
-        receivingCall,
-        callAccepted,
-        callUser,
-        answerCall,
-        leaveCall,
-        name,
-        stream
-    } = useWebRTC(chat.isGroupChat ? null : otherParticipant?._id);
 
     useEffect(() => {
         if (!chat.isGroupChat) {
@@ -95,7 +82,10 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
         // Mark existing unread messages as seen
         if (user?.id && messages.length > 0) {
             const unreadIds = messages
-                .filter(m => m.sender?._id !== user.id && !m.readBy?.includes(user?.id))
+                .filter(m => {
+                    const senderId = m.sender?._id || m.sender;
+                    return senderId !== user.id && !m.readBy?.includes(user?.id);
+                })
                 .map(m => m._id);
             if (unreadIds.length > 0) {
                 socket.emit('mark-as-read', { messageIds: unreadIds, userId: user.id, chatId: chat._id });
@@ -140,22 +130,7 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
 
     return (
         <div className="flex h-full flex-col bg-[#efeae2] dark:bg-[#0b141a]">
-            {receivingCall && !callAccepted && (
-                <IncomingCallModal
-                    name={name || "Unknown User"}
-                    onAccept={answerCall}
-                    onReject={leaveCall}
-                />
-            )}
-
-            {callAccepted && (
-                <CallScreen
-                    myVideoRef={myVideo}
-                    userVideoRef={userVideo}
-                    onEndCall={leaveCall}
-                    stream={stream}
-                />
-            )}
+            {/* Global Calling UI is now handled in CallProvider */}
 
             <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-3 md:px-4 py-2 dark:bg-[#202c33] border-b border-[#d1d7db] dark:border-[#2a3942] z-10 shadow-sm md:shadow-none">
                 <div className="flex items-center space-x-2 md:space-x-3 overflow-hidden">

@@ -51,10 +51,33 @@ export default function ChatList({ onChatSelect, selectedChatId }: ChatListProps
             }));
         };
 
+        const handleNewMessage = (newMessage: any) => {
+            // Play notification sound
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'); // WhatsApp-like ping
+            audio.play().catch(e => console.log('Audio play failed:', e));
+
+            setChats(prevChats => {
+                const existingChatIndex = prevChats.findIndex(c => c._id === newMessage.chat._id);
+                if (existingChatIndex !== -1) {
+                    const updatedChats = [...prevChats];
+                    const chat = updatedChats[existingChatIndex];
+                    updatedChats[existingChatIndex] = {
+                        ...chat,
+                        lastMessage: newMessage,
+                        unreadCount: (chat.unreadCount || 0) + 1
+                    };
+                    return updatedChats;
+                }
+                return prevChats;
+            });
+        };
+
         socket.on('user-status-change', handleStatusChange);
+        socket.on('message received', handleNewMessage);
 
         return () => {
             socket.off('user-status-change', handleStatusChange);
+            socket.off('message received', handleNewMessage);
         };
     }, [socket]);
 
@@ -100,7 +123,7 @@ export default function ChatList({ onChatSelect, selectedChatId }: ChatListProps
                                     {chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}
                                 </p>
                                 {chat.unreadCount > 0 && (
-                                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#25d366] text-[10px] font-bold text-white shrink-0">
+                                    <span className="mr-4 flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#25d366] text-[11px] font-bold text-white shrink-0 shadow-sm">
                                         {chat.unreadCount}
                                     </span>
                                 )}
