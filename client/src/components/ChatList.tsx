@@ -61,6 +61,10 @@ export default function ChatList({ onChatSelect, selectedChatId }: ChatListProps
                 if (existingChatIndex !== -1) {
                     const updatedChats = [...prevChats];
                     const chat = updatedChats[existingChatIndex];
+
+                    // Deduplication: Don't increment count or update if message already is the last message
+                    if (chat.lastMessage?._id === newMessage._id) return prevChats;
+
                     updatedChats[existingChatIndex] = {
                         ...chat,
                         lastMessage: newMessage,

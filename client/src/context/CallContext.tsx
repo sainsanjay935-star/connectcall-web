@@ -119,6 +119,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             {callAccepted && (
                 <CallScreen
+                    name={name || "Caller"}
                     myVideoRef={myVideo}
                     userVideoRef={userVideo}
                     onEndCall={handleLeaveCall}

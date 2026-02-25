@@ -59,7 +59,11 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
 
         const handleNewMessage = (newMessage: any) => {
             if (newMessage.chat._id === chat._id) {
-                setMessages((prev) => [...prev, newMessage]);
+                setMessages((prev) => {
+                    const messageExists = prev.some(m => m._id === newMessage._id);
+                    if (messageExists) return prev;
+                    return [...prev, newMessage];
+                });
                 // Acknowledge delivery and seen status
                 if (user?.id) {
                     socket.emit('message-delivered', { messageId: newMessage._id, userId: user.id, chatId: chat._id });
