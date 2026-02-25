@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Smile, Paperclip, Send, Mic, MicOff } from 'lucide-react';
+import { Smile, Paperclip, Send, Mic, MicOff, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { getApiBaseUrl } from '@/utils/constants';

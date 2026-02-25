@@ -122,6 +122,23 @@ io.on('connection', (socket) => {
         socket.in(to).emit('call-ended');
     });
 
+    socket.on('missed-call', async ({ to, from, chatId }) => {
+        try {
+            const message = new Message({
+                sender: from,
+                content: '📞 Missed Video Call',
+                chat: chatId
+            });
+            const savedMessage = await message.save();
+            const populatedMessage = await Message.findById(savedMessage._id).populate('sender', 'username profilePhoto');
+
+            // Send to both participants
+            io.in(chatId).emit('message received', populatedMessage);
+        } catch (err) {
+            console.error('Missed call log error:', err);
+        }
+    });
+
     socket.on('new message', (newMessageReceived) => {
         var chat = newMessageReceived.chat;
         if (!chat.participants) return console.log('chat.participants not defined');
