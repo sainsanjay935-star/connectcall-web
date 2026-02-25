@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Paperclip, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Paperclip, Edit2, Trash2, X, Check, CheckCheck } from 'lucide-react';
 import { decryptMessage, encryptMessage } from '@/utils/encryption';
 import { useSocket } from '@/context/SocketContext';
+import VoicePlayer from './VoicePlayer';
 
 interface MessageListProps {
     messages: any[];
@@ -41,14 +42,42 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
             setMessages(prev => prev.map(m => m._id === messageId ? { ...m, isDeleted: true, content: 'This message was deleted' } : m));
         };
 
+        const handleSeen = ({ messageIds, userId: seenUserId }: any) => {
+            setMessages(prev => prev.map(m => {
+                if (messageIds.includes(m._id)) {
+                    const currentReadBy = m.readBy || [];
+                    if (!currentReadBy.includes(seenUserId)) {
+                        return { ...m, readBy: [...currentReadBy, seenUserId] };
+                    }
+                }
+                return m;
+            }));
+        };
+
+        const handleDelivered = ({ messageId, userId: delUserId }: any) => {
+            setMessages(prev => prev.map(m => {
+                if (m._id === messageId) {
+                    const currentDeliveredTo = m.deliveredTo || [];
+                    if (!currentDeliveredTo.includes(delUserId)) {
+                        return { ...m, deliveredTo: [...currentDeliveredTo, delUserId] };
+                    }
+                }
+                return m;
+            }));
+        };
+
         socket.on('reaction-added', handleReaction);
         socket.on('message-edited', handleEdited);
         socket.on('message-deleted', handleDeleted);
+        socket.on('messages-seen', handleSeen);
+        socket.on('message-delivered-update', handleDelivered);
 
         return () => {
             socket.off('reaction-added', handleReaction);
             socket.off('message-edited', handleEdited);
             socket.off('message-deleted', handleDeleted);
+            socket.off('messages-seen', handleSeen);
+            socket.off('message-delivered-update', handleDelivered);
         };
     }, [socket]);
 
@@ -129,15 +158,19 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
                             ) : (
                                 <>
                                     {msg.messageType === 'image' ? (
-                                        <div className="mb-1 overflow-hidden rounded">
-                                            <img src={msg.fileUrl} alt="sent image" className="max-h-[300px] w-full object-cover" />
+                                        <div className="mb-1 overflow-hidden rounded-lg border border-black/5 dark:border-white/5">
+                                            <img src={msg.fileUrl} alt="sent image" className="max-h-[300px] w-full object-cover cursor-pointer hover:opacity-95 transition-opacity" />
                                         </div>
                                     ) : msg.messageType === 'video' ? (
-                                        <video controls className="mb-1 max-h-[300px] w-full rounded">
-                                            <source src={msg.fileUrl} type="video/mp4" />
-                                        </video>
+                                        <div className="mb-1 overflow-hidden rounded-lg border border-black/5 dark:border-white/5 bg-black/10">
+                                            <video controls className="max-h-[300px] w-full">
+                                                <source src={msg.fileUrl} type="video/mp4" />
+                                            </video>
+                                        </div>
+                                    ) : msg.messageType === 'voice' ? (
+                                        <VoicePlayer url={msg.fileUrl} isMine={isMine} />
                                     ) : (
-                                        <p className={`text-sm dark:text-[#e9edef] whitespace-pre-wrap ${isDeleted ? 'text-gray-500' : ''}`}>
+                                        <p className={`text-[14.5px] leading-relaxed dark:text-[#e9edef] whitespace-pre-wrap ${isDeleted ? 'text-gray-500 italic' : ''}`}>
                                             {isDeleted ? '🚫 This message was deleted' : (msg.messageType === 'text' ? decryptMessage(msg.content) : msg.content)}
                                             {msg.isEdited && !isDeleted && <span className="ml-1 text-[10px] opacity-70">(edited)</span>}
                                         </p>
@@ -146,7 +179,7 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
                                     {msg.reactions?.length > 0 && !isDeleted && (
                                         <div className="absolute -bottom-2 right-2 flex -space-x-1">
                                             {msg.reactions.map((r: any, i: number) => (
-                                                <span key={i} className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs shadow-sm dark:bg-[#2a3942]">
+                                                <span key={i} className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs shadow-sm dark:bg-[#2a3942] border border-black/5 dark:border-white/5">
                                                     {r.emoji}
                                                 </span>
                                             ))}
@@ -159,6 +192,17 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
                                 <span className="text-[10px] text-[#667781] dark:text-[#8696a0]">
                                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                                 </span>
+                                {isMine && !isDeleted && (
+                                    <div className="flex">
+                                        {msg.readBy?.some((id: string) => id !== userId) ? (
+                                            <CheckCheck size={14} className="text-[#53bdeb]" strokeWidth={3} />
+                                        ) : msg.deliveredTo?.some((id: string) => id !== userId) ? (
+                                            <CheckCheck size={14} className="text-[#8696a0]" strokeWidth={2} />
+                                        ) : (
+                                            <Check size={14} className="text-[#8696a0]" strokeWidth={2} />
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

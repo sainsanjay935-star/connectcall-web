@@ -73,6 +73,11 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
         const handleNewMessage = (newMessage: any) => {
             if (newMessage.chat._id === chat._id) {
                 setMessages((prev) => [...prev, newMessage]);
+                // Acknowledge delivery and seen status
+                if (user?.id) {
+                    socket.emit('message-delivered', { messageId: newMessage._id, userId: user.id, chatId: chat._id });
+                    socket.emit('mark-as-read', { messageIds: [newMessage._id], userId: user.id, chatId: chat._id });
+                }
             }
         };
 
@@ -86,6 +91,16 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
         };
 
         socket.on('message received', handleNewMessage);
+
+        // Mark existing unread messages as seen
+        if (user?.id && messages.length > 0) {
+            const unreadIds = messages
+                .filter(m => m.sender?._id !== user.id && !m.readBy?.includes(user?.id))
+                .map(m => m._id);
+            if (unreadIds.length > 0) {
+                socket.emit('mark-as-read', { messageIds: unreadIds, userId: user.id, chatId: chat._id });
+            }
+        }
         socket.on('typing', handleTyping);
         socket.on('stop typing', handleStopTyping);
         socket.on('user-status-change', handleStatusChange);

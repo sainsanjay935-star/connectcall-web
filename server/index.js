@@ -164,6 +164,27 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('mark-as-read', async ({ messageIds, userId, chatId }) => {
+        try {
+            await Message.updateMany(
+                { _id: { $in: messageIds }, readBy: { $ne: userId } },
+                { $addToSet: { readBy: userId } }
+            );
+            io.in(chatId).emit('messages-seen', { messageIds, userId, chatId });
+        } catch (err) {
+            console.error('Mark as read error:', err);
+        }
+    });
+
+    socket.on('message-delivered', async ({ messageId, userId, chatId }) => {
+        try {
+            await Message.findByIdAndUpdate(messageId, { $addToSet: { deliveredTo: userId } });
+            io.in(chatId).emit('message-delivered-update', { messageId, userId, chatId });
+        } catch (err) {
+            console.error('Delivery status error:', err);
+        }
+    });
+
     socket.on('delete-message', async ({ messageId, chatId }) => {
         try {
             const message = await Message.findById(messageId);
