@@ -17,6 +17,11 @@ export default function DashboardPage() {
 
     return (
         <div className="flex h-screen w-full bg-[#f0f2f5] p-0 md:p-4 dark:bg-[#0b141a]">
+            {/* DEBUG INDICATOR - REMOVE AFTER VERIFICATION */}
+            <div className="fixed top-2 left-2 z-[9999] bg-red-600 text-white px-2 py-1 rounded text-[10px] font-bold shadow-lg pointer-events-none opacity-80">
+                FIX-V3 LIVE
+            </div>
+
             <div className="flex h-full w-full overflow-hidden rounded shadow-xl dark:bg-[#111b21] dark:shadow-none">
                 {/* Sidebar - hidden on mobile when a chat is selected */}
                 <div className={`${selectedChat ? 'hidden' : 'flex'} w-full md:flex md:w-[30%] md:min-w-[300px] border-r border-[#d1d7db] dark:border-[#2a3942]`}>
