@@ -22,7 +22,7 @@ export const useWebRTC = (otherUserId: string | null) => {
     const connectionRef = useRef<Peer.Instance | null>(null);
 
     const resetState = useCallback(() => {
-        console.log("Resetting WebRTC state");
+        console.log("Resetting WebRTC state and stopping tracks");
         setReceivingCall(false);
         setCallAccepted(false);
         setCallEnded(false);
@@ -30,17 +30,24 @@ export const useWebRTC = (otherUserId: string | null) => {
         setCallerSignal(null);
 
         if (connectionRef.current) {
-            connectionRef.current.destroy();
+            try {
+                connectionRef.current.destroy();
+            } catch (e) {
+                console.error("Error destroying peer:", e);
+            }
             connectionRef.current = null;
         }
 
         if (stream) {
             stream.getTracks().forEach(track => {
                 track.stop();
-                console.log(`Stopped track: ${track.kind}`);
+                console.log(`Stopped track: ${track.kind} (${track.label})`);
             });
             setStream(null);
         }
+
+        if (myVideo.current) myVideo.current.srcObject = null;
+        if (userVideo.current) userVideo.current.srcObject = null;
     }, [stream]);
 
     useEffect(() => {
@@ -54,39 +61,34 @@ export const useWebRTC = (otherUserId: string | null) => {
             setCallerSignal(data.offer);
         });
 
-        // Combined listener for all WebRTC signaling (Answers, Candidates)
+        // Unified signaling listener (Answers and ICE Candidates)
         socket.on("call-signal", (data) => {
+            if (!data.signal) return;
             console.log("Received call-signal:", data.signal.type || "candidate");
-            if (connectionRef.current && !connectionRef.current.destroyed) {
-                connectionRef.current.signal(data.signal);
-            }
-        });
 
-        socket.on("call-answered", (data) => {
-            console.log("Call answered (legacy event), signaling peer...");
-            setCallAccepted(true);
-            if (connectionRef.current && !connectionRef.current.destroyed) {
-                connectionRef.current.signal(data.answer);
+            // Critical: If initiator receives 'answer', transition to callAccepted
+            if (data.signal.type === 'answer') {
+                console.log("Setting callAccepted to true for initiator");
+                setCallAccepted(true);
             }
-        });
 
-        socket.on("ice-candidate", (data) => {
-            console.log("Received ICE candidate (legacy event), signaling peer...");
             if (connectionRef.current && !connectionRef.current.destroyed) {
-                connectionRef.current.signal(data.candidate);
+                try {
+                    connectionRef.current.signal(data.signal);
+                } catch (e) {
+                    console.error("Error applying signal to peer:", e);
+                }
             }
         });
 
         socket.on("call-ended", () => {
-            console.log("Call ended by remote user");
+            console.log("Call ended notice from server/remote");
             resetState();
         });
 
         return () => {
             socket.off("incoming-call");
             socket.off("call-signal");
-            socket.off("call-answered");
-            socket.off("ice-candidate");
             socket.off("call-ended");
         };
     }, [socket, resetState]);
@@ -151,6 +153,7 @@ export const useWebRTC = (otherUserId: string | null) => {
             .catch(err => {
                 console.error("Failed to get local stream", err);
                 alert("Could not access camera/microphone. Please check permissions.");
+                resetState();
             });
     };
 
@@ -191,14 +194,18 @@ export const useWebRTC = (otherUserId: string | null) => {
                 });
 
                 if (callerSignal) {
-                    console.log("Signaling caller's offer to peer...");
-                    peer.signal(callerSignal);
+                    console.log("Applying initial offer to receiver peer...");
+                    try {
+                        peer.signal(callerSignal);
+                    } catch (e) {
+                        console.error("Error applying initial offer:", e);
+                    }
                 }
                 connectionRef.current = peer;
             })
             .catch(err => {
-                console.error("Failed to get local stream", err);
-                alert("Could not access camera/microphone. Please check permissions.");
+                console.error("Failed to get local stream on answer", err);
+                alert("Could not access camera/microphone to answer call.");
                 resetState();
             });
     };
