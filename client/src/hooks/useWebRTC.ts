@@ -28,16 +28,18 @@ export const useWebRTC = (otherUserId: string | null) => {
         setCallEnded(false);
         setCaller("");
         setCallerSignal(null);
+
+        if (connectionRef.current) {
+            connectionRef.current.destroy();
+            connectionRef.current = null;
+        }
+
         if (stream) {
             stream.getTracks().forEach(track => {
                 track.stop();
                 console.log(`Stopped track: ${track.kind}`);
             });
             setStream(null);
-        }
-        if (connectionRef.current) {
-            connectionRef.current.destroy();
-            connectionRef.current = null;
         }
     }, [stream]);
 
@@ -52,17 +54,25 @@ export const useWebRTC = (otherUserId: string | null) => {
             setCallerSignal(data.offer);
         });
 
+        // Combined listener for all WebRTC signaling (Answers, Candidates)
+        socket.on("call-signal", (data) => {
+            console.log("Received call-signal:", data.signal.type || "candidate");
+            if (connectionRef.current && !connectionRef.current.destroyed) {
+                connectionRef.current.signal(data.signal);
+            }
+        });
+
         socket.on("call-answered", (data) => {
-            console.log("Call answered, signaling peer...");
+            console.log("Call answered (legacy event), signaling peer...");
             setCallAccepted(true);
-            if (connectionRef.current) {
+            if (connectionRef.current && !connectionRef.current.destroyed) {
                 connectionRef.current.signal(data.answer);
             }
         });
 
         socket.on("ice-candidate", (data) => {
-            console.log("Received ICE candidate, signaling peer...");
-            if (connectionRef.current) {
+            console.log("Received ICE candidate (legacy event), signaling peer...");
+            if (connectionRef.current && !connectionRef.current.destroyed) {
                 connectionRef.current.signal(data.candidate);
             }
         });
@@ -74,6 +84,7 @@ export const useWebRTC = (otherUserId: string | null) => {
 
         return () => {
             socket.off("incoming-call");
+            socket.off("call-signal");
             socket.off("call-answered");
             socket.off("ice-candidate");
             socket.off("call-ended");
@@ -113,8 +124,9 @@ export const useWebRTC = (otherUserId: string | null) => {
                             from: user?.id,
                             name: user?.username,
                         });
-                    } else if ((data as any).candidate) {
-                        socket?.emit("ice-candidate", { to: id, candidate: (data as any).candidate });
+                    } else {
+                        // All subsequent signals (candidates, etc.) use unified call-signal
+                        socket?.emit("call-signal", { to: id, signal: data });
                     }
                 });
 
@@ -123,8 +135,16 @@ export const useWebRTC = (otherUserId: string | null) => {
                     if (userVideo.current) userVideo.current.srcObject = remoteStream;
                 });
 
-                peer.on("error", (err) => console.error("Peer error (Initiator):", err));
-                peer.on("close", () => console.log("Peer connection closed (Initiator)"));
+                peer.on("error", (err) => {
+                    console.error("Peer error (Initiator):", err);
+                    if (err.code === 'ERR_DATA_CHANNEL') return; // Ignore data channel issues
+                    resetState();
+                });
+
+                peer.on("close", () => {
+                    console.log("Peer connection closed (Initiator)");
+                    resetState();
+                });
 
                 connectionRef.current = peer;
             })
@@ -151,11 +171,8 @@ export const useWebRTC = (otherUserId: string | null) => {
 
                 peer.on("signal", (data) => {
                     console.log("Peer signaling (Receiver):", data.type || "candidate");
-                    if (data.type === 'answer') {
-                        socket?.emit("answer-call", { answer: data, to: caller });
-                    } else if ((data as any).candidate) {
-                        socket?.emit("ice-candidate", { to: caller, candidate: (data as any).candidate });
-                    }
+                    // Send answer and candidates via unified call-signal
+                    socket?.emit("call-signal", { to: caller, signal: data });
                 });
 
                 peer.on("stream", (remoteStream) => {
@@ -163,8 +180,15 @@ export const useWebRTC = (otherUserId: string | null) => {
                     if (userVideo.current) userVideo.current.srcObject = remoteStream;
                 });
 
-                peer.on("error", (err) => console.error("Peer error (Receiver):", err));
-                peer.on("close", () => console.log("Peer connection closed (Receiver)"));
+                peer.on("error", (err) => {
+                    console.error("Peer error (Receiver):", err);
+                    resetState();
+                });
+
+                peer.on("close", () => {
+                    console.log("Peer connection closed (Receiver)");
+                    resetState();
+                });
 
                 if (callerSignal) {
                     console.log("Signaling caller's offer to peer...");
@@ -175,12 +199,16 @@ export const useWebRTC = (otherUserId: string | null) => {
             .catch(err => {
                 console.error("Failed to get local stream", err);
                 alert("Could not access camera/microphone. Please check permissions.");
+                resetState();
             });
     };
 
     const leaveCall = () => {
         console.log("Leaving call...");
-        socket?.emit("end-call", { to: otherUserId || caller });
+        const target = otherUserId || caller;
+        if (target) {
+            socket?.emit("end-call", { to: target });
+        }
         resetState();
     };
 

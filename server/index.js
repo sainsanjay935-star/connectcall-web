@@ -124,6 +124,11 @@ io.on('connection', (socket) => {
         socket.to(to).emit('ice-candidate', { candidate });
     });
 
+    socket.on('call-signal', ({ to, signal }) => {
+        console.log(`Generic signal sent to: ${to}`);
+        socket.to(to).emit('call-signal', { signal, from: users.get(socket.id) });
+    });
+
     socket.on('end-call', ({ to }) => {
         console.log(`Call ended for: ${to}`);
         socket.to(to).emit('call-ended');
