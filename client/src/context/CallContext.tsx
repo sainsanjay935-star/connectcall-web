@@ -34,6 +34,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stream
     } = useWebRTC(targetUserId);
 
+    // Reset isCalling when call is accepted or ended
+    useEffect(() => {
+        if (callAccepted) {
+            setIsCalling(false);
+        }
+    }, [callAccepted]);
+
     useEffect(() => {
         // Handle ringing sound for incoming call
         if (receivingCall && !callAccepted) {
@@ -41,7 +48,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             audio.loop = true;
             audio.play().catch(e => console.log('Audio play failed:', e));
             setRingingAudio(audio);
-        } else if (callAccepted || (!receivingCall && !isCalling)) {
+        } else {
             if (ringingAudio) {
                 ringingAudio.pause();
                 ringingAudio.currentTime = 0;
@@ -51,7 +58,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => {
             if (ringingAudio) ringingAudio.pause();
         };
-    }, [receivingCall, callAccepted, isCalling]);
+    }, [receivingCall, callAccepted]);
 
     const handleCallUser = (id: string) => {
         setTargetUserId(id);
@@ -61,6 +68,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const handleLeaveCall = () => {
         setIsCalling(false);
+        setTargetUserId(null); // Clear target user on leave
         leaveCall();
     };
 

@@ -110,18 +110,22 @@ io.on('connection', (socket) => {
 
     // WebRTC Signaling
     socket.on('call-user', ({ to, offer, from, name }) => {
+        console.log(`Call from ${from} (${name}) to ${to}`);
         socket.to(to).emit('incoming-call', { from, offer, name });
     });
 
     socket.on('answer-call', ({ to, answer }) => {
+        console.log(`Call answered by user to: ${to}`);
         socket.to(to).emit('call-answered', { answer });
     });
 
     socket.on('ice-candidate', ({ to, candidate }) => {
+        console.log(`ICE candidate sent to: ${to}`);
         socket.to(to).emit('ice-candidate', { candidate });
     });
 
     socket.on('end-call', ({ to }) => {
+        console.log(`Call ended for: ${to}`);
         socket.to(to).emit('call-ended');
     });
 

@@ -17,6 +17,7 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
     const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
@@ -37,27 +38,39 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
         fetchSuggested();
     }, [token]);
 
-    const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const query = e.target.value;
-        setSearchQuery(query);
+    // Debounced search logic
+    useEffect(() => {
+        const query = searchQuery.trim();
         if (!query) {
             setSearchResults([]);
             setIsSearching(false);
+            setIsLoading(false);
             return;
         }
 
-        setIsSearching(true); // Toggle search view
-        try {
-            const baseUrl = getApiBaseUrl();
-            console.log('[Sidebar] Search Attempt:', { baseUrl, query });
-            const response = await axios.get(`${baseUrl}/api/users/search?query=${query}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            console.log('[Sidebar] Search Results:', response.data);
-            setSearchResults(response.data);
-        } catch (err: any) {
-            console.error('[Sidebar] Search Error:', err.response?.data || err.message);
-        }
+        const delayDebounceFn = setTimeout(async () => {
+            setIsSearching(true);
+            setIsLoading(true);
+            try {
+                const baseUrl = getApiBaseUrl();
+                console.log('[Sidebar] Search Attempt:', { baseUrl, query });
+                const response = await axios.get(`${baseUrl}/api/users/search?query=${query}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                console.log('[Sidebar] Search Results:', response.data);
+                setSearchResults(response.data);
+            } catch (err: any) {
+                console.error('[Sidebar] Search Error:', err.response?.data || err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, token]);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
     };
 
     const handleResetData = async () => {
@@ -150,7 +163,7 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                         placeholder="Search users..."
                         className="w-full bg-transparent p-2.5 text-sm text-[#3b4a54] outline-none dark:text-[#d1d7db] placeholder:text-[#667781] dark:placeholder:text-[#8696a0]"
                         value={searchQuery}
-                        onChange={handleSearch}
+                        onChange={handleSearchChange}
                     />
                 </div>
             </div>
@@ -158,7 +171,12 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
             <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 {isSearching ? (
                     <div className="divide-y divide-[#f0f2f5] dark:divide-[#2a3942]">
-                        {searchResults.length > 0 ? (
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-whatsapp-green border-t-transparent mb-2"></div>
+                                <p className="text-sm text-[#667781] dark:text-[#8696a0]">Searching...</p>
+                            </div>
+                        ) : searchResults.length > 0 ? (
                             searchResults.map((u) => (
                                 <div
                                     key={u._id}
