@@ -94,9 +94,17 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
 
             {/* Video / Background Area */}
             <div className="flex-1 relative overflow-hidden bg-black">
-                {/* Remote Content */}
-                {isVideoOff || isAudioOnly ? (
-                    <div className="h-full w-full flex items-center justify-center p-4">
+                {/* Unified Remote Media - Always rendered to ensure audio flows */}
+                <video
+                    playsInline
+                    ref={userVideoRef}
+                    autoPlay
+                    className={`h-full w-full object-cover transition-opacity duration-500 ${(isVideoOff || isAudioOnly) ? 'opacity-0 absolute pointer-events-none' : 'opacity-100'}`}
+                />
+
+                {/* Placeholder / UI when video is off or audio-only */}
+                {(isVideoOff || isAudioOnly) && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
                         <div className="absolute inset-0 opacity-40 blur-3xl scale-125">
                             <div className="h-full w-full bg-[#128c7e] rounded-full animate-pulse" />
                         </div>
@@ -111,26 +119,19 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
                             </div>
                         </div>
                     </div>
-                ) : (
-                    <div className="h-full w-full">
-                        {isConnecting && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                                <div className="flex flex-col items-center space-y-4">
-                                    <div className="w-12 h-12 border-4 border-[#25d366]/30 border-t-[#25d366] rounded-full animate-spin" />
-                                    <p className="text-white text-sm font-medium tracking-widest uppercase">Establishing Connection</p>
-                                </div>
-                            </div>
-                        )}
-                        <video
-                            playsInline
-                            ref={userVideoRef}
-                            autoPlay
-                            className="h-full w-full object-cover"
-                        />
+                )}
+
+                {/* Connection Overlay for Video Mode */}
+                {!isAudioOnly && !isVideoOff && isConnecting && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="flex flex-col items-center space-y-4">
+                            <div className="w-12 h-12 border-4 border-[#25d366]/30 border-t-[#25d366] rounded-full animate-spin" />
+                            <p className="text-white text-sm font-medium tracking-widest uppercase">Establishing Connection</p>
+                        </div>
                     </div>
                 )}
 
-                {/* Local Video Overlay - Only shown if it's a video call and video is enabled */}
+                {/* Local Video Overlay - Only shown if it's a video call and local video is enabled */}
                 {!isAudioOnly && !isVideoOff && (
                     <div className="absolute bottom-28 right-4 w-24 h-36 md:w-32 md:h-48 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black z-20">
                         <video

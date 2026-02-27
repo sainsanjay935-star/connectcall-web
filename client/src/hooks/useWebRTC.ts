@@ -24,18 +24,23 @@ export const useWebRTC = (otherUserId: string | null) => {
     const connectionRef = useRef<Peer.Instance | null>(null);
     const signalQueue = useRef<any[]>([]);
 
+    // Track Empowerment: Ensure all tracks are enabled as soon as stream exists
+    useEffect(() => {
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.enabled = true;
+                console.log(`[RTC] Stream track enabled: ${track.kind} (${track.label})`);
+            });
+        }
+    }, [stream]);
+
     // Defensive: Attach local stream to ref whenever available
     useEffect(() => {
         if (stream && myVideo.current) {
             console.log("[RTC] Attaching local stream to ref");
             myVideo.current.srcObject = stream;
-            // Explicitly ensure tracks are enabled
-            stream.getTracks().forEach(track => {
-                track.enabled = true;
-                console.log(`[RTC] Local track enabled: ${track.kind}`);
-            });
         }
-    }, [stream, myVideo.current, callAccepted]); // Added callAccepted
+    }, [stream, myVideo.current, callAccepted]);
 
     // Defensive: Attach remote stream to ref whenever available
     useEffect(() => {
@@ -44,10 +49,9 @@ export const useWebRTC = (otherUserId: string | null) => {
             userVideo.current.srcObject = remoteStream;
             userVideo.current.play().catch(e => {
                 console.warn("[RTC] Auto-play blocked, waiting for user interaction:", e);
-                // We don't alert here as it might be annoying, the UI should show 'Play' or similar if needed
             });
         }
-    }, [remoteStream, userVideo.current, callAccepted]); // Added callAccepted
+    }, [remoteStream, userVideo.current, callAccepted]);
 
     const resetState = useCallback(() => {
         console.log("Resetting WebRTC state and stopping tracks");
