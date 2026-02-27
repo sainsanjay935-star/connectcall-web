@@ -134,8 +134,25 @@ export const useWebRTC = (otherUserId: string | null) => {
                     ...peerOptions
                 });
 
-                peer.on("signal", (data) => {
+                // Debug ICE Connection State
+                const pc = (peer as any)._pc as RTCPeerConnection;
+                if (pc) {
+                    pc.oniceconnectionstatechange = () => {
+                        console.log(`[RTC] ICE State (Initiator): ${pc.iceConnectionState}`);
+                    };
+                }
+
+                peer.on("signal", (data: any) => {
                     console.log("[RTC] Signaling (Initiator):", data.type || "candidate");
+
+                    // Defensive: Clean candidate signals
+                    if (data.candidate) {
+                        if (!data.candidate.candidate && data.candidate.candidate !== "") {
+                            console.warn("[RTC] Suppressing empty initiator candidate");
+                            return;
+                        }
+                    }
+
                     if (data.type === 'offer') {
                         socket?.emit("call-user", {
                             to: id,
@@ -150,7 +167,9 @@ export const useWebRTC = (otherUserId: string | null) => {
 
                 peer.on("stream", (remoteStream) => {
                     console.log("[RTC] Received remote stream:", remoteStream.id);
-                    console.log("[RTC] Tracks visibility:", remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled ? 'enabled' : 'disabled'}`));
+                    remoteStream.getTracks().forEach(track => {
+                        console.log(`[RTC] Track: ${track.kind}, ID: ${track.id}, Enabled: ${track.enabled}, ReadyState: ${track.readyState}`);
+                    });
                     if (userVideo.current) {
                         userVideo.current.srcObject = remoteStream;
                         userVideo.current.play().catch(e => console.error("[RTC] Error playing remote video:", e));
@@ -192,8 +211,20 @@ export const useWebRTC = (otherUserId: string | null) => {
                     ...peerOptions
                 });
 
-                peer.on("signal", (data) => {
+                const pc = (peer as any)._pc as RTCPeerConnection;
+                if (pc) {
+                    pc.oniceconnectionstatechange = () => {
+                        console.log(`[RTC] ICE State (Receiver): ${pc.iceConnectionState}`);
+                    };
+                }
+
+                peer.on("signal", (data: any) => {
                     console.log("[RTC] Signaling (Receiver):", data.type || "candidate");
+
+                    if (data.candidate && !data.candidate.candidate && data.candidate.candidate !== "") {
+                        return;
+                    }
+
                     socket?.emit("call-signal", { to: caller, signal: data });
                 });
 
