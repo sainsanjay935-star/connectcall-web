@@ -10,6 +10,7 @@ export const useWebRTC = (otherUserId: string | null) => {
     const { user } = useAuth();
 
     const [stream, setStream] = useState<MediaStream | null>(null);
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [receivingCall, setReceivingCall] = useState(false);
     const [caller, setCaller] = useState("");
     const [callerSignal, setCallerSignal] = useState<any>();
@@ -20,6 +21,32 @@ export const useWebRTC = (otherUserId: string | null) => {
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);
     const connectionRef = useRef<Peer.Instance | null>(null);
+    const signalQueue = useRef<any[]>([]);
+
+    // Defensive: Attach local stream to ref whenever available
+    useEffect(() => {
+        if (stream && myVideo.current) {
+            console.log("[RTC] Attaching local stream to ref");
+            myVideo.current.srcObject = stream;
+            // Explicitly ensure tracks are enabled
+            stream.getTracks().forEach(track => {
+                track.enabled = true;
+                console.log(`[RTC] Local track enabled: ${track.kind}`);
+            });
+        }
+    }, [stream, myVideo.current, callAccepted]); // Added callAccepted
+
+    // Defensive: Attach remote stream to ref whenever available
+    useEffect(() => {
+        if (remoteStream && userVideo.current) {
+            console.log("[RTC] Attaching remote stream to ref");
+            userVideo.current.srcObject = remoteStream;
+            userVideo.current.play().catch(e => {
+                console.warn("[RTC] Auto-play blocked, waiting for user interaction:", e);
+                // We don't alert here as it might be annoying, the UI should show 'Play' or similar if needed
+            });
+        }
+    }, [remoteStream, userVideo.current, callAccepted]); // Added callAccepted
 
     const resetState = useCallback(() => {
         console.log("Resetting WebRTC state and stopping tracks");
@@ -28,6 +55,8 @@ export const useWebRTC = (otherUserId: string | null) => {
         setCallEnded(false);
         setCaller("");
         setCallerSignal(null);
+        setRemoteStream(null);
+        signalQueue.current = [];
 
         if (connectionRef.current) {
             try {
@@ -66,8 +95,8 @@ export const useWebRTC = (otherUserId: string | null) => {
             if (!data.signal) return;
 
             // Defensive: Check if candidate signals are malformed
-            if (!data.signal.type && !data.signal.candidate && data.signal.candidate !== "") {
-                console.log("[RTC] Received potentially malformed signal, skipping:", data.signal);
+            if (data.signal.type === undefined && data.signal.candidate === undefined && data.signal.sdpMid === undefined) {
+                console.log("[RTC] Received empty/malformed signal, skipping");
                 return;
             }
 
@@ -86,7 +115,8 @@ export const useWebRTC = (otherUserId: string | null) => {
                     console.error("[RTC] Error applying signal to peer:", e);
                 }
             } else {
-                console.log("[RTC] Peer not ready or destroyed, ignoring signal");
+                console.log("[RTC] Peer not ready, queuing signal");
+                signalQueue.current.push(data.signal);
             }
         });
 
@@ -165,16 +195,10 @@ export const useWebRTC = (otherUserId: string | null) => {
                     }
                 });
 
-                peer.on("stream", (remoteStream) => {
-                    console.log("[RTC] Received remote stream:", remoteStream.id);
-                    remoteStream.getTracks().forEach(track => {
-                        console.log(`[RTC] Track: ${track.kind}, ID: ${track.id}, Enabled: ${track.enabled}, ReadyState: ${track.readyState}`);
-                    });
-                    if (userVideo.current) {
-                        userVideo.current.srcObject = remoteStream;
-                        userVideo.current.play().catch(e => console.error("[RTC] Error playing remote video:", e));
-                    }
-                    setCallAccepted(true); // Ensure state transition on stream reception
+                peer.on("stream", (remoteTrackStream) => {
+                    console.log("[RTC] Received remote stream:", remoteTrackStream.id);
+                    setRemoteStream(remoteTrackStream);
+                    setCallAccepted(true);
                 });
 
                 peer.on("error", (err: any) => {
@@ -189,6 +213,13 @@ export const useWebRTC = (otherUserId: string | null) => {
                 });
 
                 connectionRef.current = peer;
+
+                // Flush queued signals
+                if (signalQueue.current.length > 0) {
+                    console.log(`[RTC] Flushing ${signalQueue.current.length} queued signals for initiator`);
+                    signalQueue.current.forEach(sig => peer.signal(sig));
+                    signalQueue.current = [];
+                }
             })
             .catch(err => {
                 console.error("[RTC] Failed to get local stream", err);
@@ -199,11 +230,12 @@ export const useWebRTC = (otherUserId: string | null) => {
 
     const answerCall = () => {
         console.log("[RTC] Answering call from:", caller);
+        // Set call accepted early so UI renders and refs are available
+        setCallAccepted(true);
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then((currentStream) => {
                 setStream(currentStream);
-                if (myVideo.current) myVideo.current.srcObject = currentStream;
 
                 const peer = new Peer({
                     initiator: false,
@@ -220,22 +252,12 @@ export const useWebRTC = (otherUserId: string | null) => {
 
                 peer.on("signal", (data: any) => {
                     console.log("[RTC] Signaling (Receiver):", data.type || "candidate");
-
-                    if (data.candidate && !data.candidate.candidate && data.candidate.candidate !== "") {
-                        return;
-                    }
-
                     socket?.emit("call-signal", { to: caller, signal: data });
                 });
 
-                peer.on("stream", (remoteStream) => {
-                    console.log("[RTC] Received remote stream:", remoteStream.id);
-                    console.log("[RTC] Tracks visibility:", remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled ? 'enabled' : 'disabled'}`));
-                    if (userVideo.current) {
-                        userVideo.current.srcObject = remoteStream;
-                        userVideo.current.play().catch(e => console.error("[RTC] Error playing remote video:", e));
-                    }
-                    setCallAccepted(true);
+                peer.on("stream", (remoteTrackStream) => {
+                    console.log("[RTC] Received remote stream:", remoteTrackStream.id);
+                    setRemoteStream(remoteTrackStream);
                 });
 
                 peer.on("error", (err: any) => {
@@ -250,13 +272,17 @@ export const useWebRTC = (otherUserId: string | null) => {
 
                 if (callerSignal) {
                     console.log("[RTC] Applying initial offer to receiver peer...");
-                    try {
-                        peer.signal(callerSignal);
-                    } catch (e) {
-                        console.error("[RTC] Error applying initial offer:", e);
-                    }
+                    peer.signal(callerSignal);
                 }
+
                 connectionRef.current = peer;
+
+                // Flush queued signals
+                if (signalQueue.current.length > 0) {
+                    console.log(`[RTC] Flushing ${signalQueue.current.length} queued signals for receiver`);
+                    signalQueue.current.forEach(sig => peer.signal(sig));
+                    signalQueue.current = [];
+                }
             })
             .catch(err => {
                 console.error("[RTC] Failed to get local stream on answer", err);
@@ -276,6 +302,7 @@ export const useWebRTC = (otherUserId: string | null) => {
 
     return {
         stream,
+        remoteStream,
         myVideo,
         userVideo,
         receivingCall,
@@ -283,10 +310,10 @@ export const useWebRTC = (otherUserId: string | null) => {
         callerSignal,
         callAccepted,
         callEnded,
+        name,
         callUser,
         answerCall,
         leaveCall,
-        setName,
-        name
+        setName
     };
 };
