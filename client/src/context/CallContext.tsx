@@ -31,7 +31,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         answerCall,
         leaveCall,
         name,
-        stream
+        stream,
+        remoteStream
     } = useWebRTC(targetUserId);
 
     // Reset isCalling when call is accepted or ended
@@ -138,6 +139,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     userVideoRef={userVideo}
                     onEndCall={handleLeaveCall}
                     stream={stream}
+                    remoteStream={remoteStream}
                 />
             )}
         </CallContext.Provider>

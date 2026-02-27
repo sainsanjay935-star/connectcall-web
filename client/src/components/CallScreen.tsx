@@ -9,9 +9,10 @@ interface CallScreenProps {
     userVideoRef: React.RefObject<HTMLVideoElement>;
     onEndCall: () => void;
     stream: MediaStream | null;
+    remoteStream: MediaStream | null; // Added
 }
 
-export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, stream }: CallScreenProps) {
+export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, stream, remoteStream }: CallScreenProps) {
     const [isMuted, setIsMuted] = React.useState(false);
     const [isVideoOff, setIsVideoOff] = React.useState(false);
     const [isSpeakerOn, setIsSpeakerOn] = React.useState(true);
@@ -25,15 +26,13 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
         return () => clearInterval(interval);
     }, []);
 
+    // Reactive: Stop connecting spinner as soon as remoteStream is received
     React.useEffect(() => {
-        const checkStream = setInterval(() => {
-            if (userVideoRef.current && userVideoRef.current.srcObject) {
-                setIsConnecting(false);
-                clearInterval(checkStream);
-            }
-        }, 500);
-        return () => clearInterval(checkStream);
-    }, [userVideoRef]);
+        if (remoteStream) {
+            console.log("[CallScreen] Remote stream received, stopping connecting state");
+            setIsConnecting(false);
+        }
+    }, [remoteStream]);
 
     const formatDuration = (seconds: number) => {
         const m = Math.floor(seconds / 60);
