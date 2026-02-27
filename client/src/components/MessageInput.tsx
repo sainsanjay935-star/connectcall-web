@@ -25,39 +25,59 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
     const [recorder] = useState(new VoiceRecorder());
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-    const handleVoiceMessage = async () => {
-        if (!isRecording) {
+    const startRecording = async () => {
+        try {
             await recorder.start();
             setIsRecording(true);
-        } else {
+            console.log('[Voice] Recording started');
+        } catch (err) {
+            console.error('[Voice] Failed to start recording', err);
+        }
+    };
+
+    const stopAndSendRecording = async () => {
+        if (!isRecording) return;
+
+        setIsRecording(false);
+        console.log('[Voice] Stopping and sending recording');
+
+        try {
             const audioBlob = await recorder.stop();
-            setIsRecording(false);
+            if (audioBlob.size < 100) {
+                console.warn('[Voice] Recording too short, skipping');
+                return;
+            }
 
             const file = new File([audioBlob], "voice-note.webm", { type: 'audio/webm' });
             const formData = new FormData();
             formData.append('file', file);
 
-            try {
-                const baseUrl = getApiBaseUrl();
-                const uploadRes = await axios.post(`${baseUrl}/api/media/upload`, formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        Authorization: `Bearer ${token}`
-                    }
-                });
+            const baseUrl = getApiBaseUrl();
+            const uploadRes = await axios.post(`${baseUrl}/api/media/upload`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`
+                }
+            });
 
-                const response = await axios.post(
-                    `${baseUrl}/api/chats/message`,
-                    { chatId, content: 'Voice Message', messageType: 'voice', fileUrl: uploadRes.data.url },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
+            const response = await axios.post(
+                `${baseUrl}/api/chats/message`,
+                { chatId, content: 'Voice Message', messageType: 'voice', fileUrl: uploadRes.data.url },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
-                socket?.emit('new message', response.data);
-                onMessageSent(response.data);
-            } catch (err) {
-                console.error('Voice message upload failed', err);
-            }
+            socket?.emit('new message', response.data);
+            onMessageSent(response.data);
+        } catch (err) {
+            console.error('Voice message upload failed', err);
         }
+    };
+
+    const cancelRecording = async () => {
+        if (!isRecording) return;
+        setIsRecording(false);
+        console.log('[Voice] Recording cancelled');
+        await recorder.stop();
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -167,7 +187,7 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
                     </div>
                     <span className="text-xs text-[#667781] dark:text-[#8696a0] animate-pulse">Recording voice message...</span>
                     <button
-                        onClick={handleVoiceMessage}
+                        onClick={cancelRecording}
                         className="text-red-500 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded"
                     >
                         CANCEL
@@ -231,8 +251,10 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
                     </button>
                 ) : (
                     <button
-                        onClick={handleVoiceMessage}
-                        className={`p-2.5 rounded-full transition-all transform active:scale-90 shadow-sm ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5'
+                        onPointerDown={startRecording}
+                        onPointerUp={stopAndSendRecording}
+                        onPointerLeave={cancelRecording}
+                        className={`p-2.5 rounded-full transition-all transform active:scale-95 shadow-sm touch-none ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5'
                             }`}
                     >
                         {isRecording ? <Check size={22} /> : <Mic size={22} />}
