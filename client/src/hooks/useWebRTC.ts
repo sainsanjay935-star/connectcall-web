@@ -99,13 +99,21 @@ export const useWebRTC = (otherUserId: string | null) => {
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                // Note: In production, you should add YOUR TURN server here
+                // {
+                //     urls: 'turn:your-turn-server.com',
+                //     username: 'username',
+                //     credential: 'password'
+                // }
             ]
         },
         trickle: true,
     };
 
     const callUser = (id: string) => {
-        console.log("Initiating call to:", id);
+        console.log("[RTC] Initiating call to:", id);
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then((currentStream) => {
                 setStream(currentStream);
@@ -118,7 +126,7 @@ export const useWebRTC = (otherUserId: string | null) => {
                 });
 
                 peer.on("signal", (data) => {
-                    console.log("Peer signaling (Initiator):", data.type || "candidate");
+                    console.log("[RTC] Signaling (Initiator):", data.type || "candidate");
                     if (data.type === 'offer') {
                         socket?.emit("call-user", {
                             to: id,
@@ -127,39 +135,38 @@ export const useWebRTC = (otherUserId: string | null) => {
                             name: user?.username,
                         });
                     } else {
-                        // All subsequent signals (candidates, etc.) use unified call-signal
                         socket?.emit("call-signal", { to: id, signal: data });
                     }
                 });
 
                 peer.on("stream", (remoteStream) => {
-                    console.log("Received remote stream (Initiator)");
+                    console.log("[RTC] Received remote stream (Initiator)");
                     if (userVideo.current) userVideo.current.srcObject = remoteStream;
+                    setCallAccepted(true); // Ensure state transition on stream reception
                 });
 
                 peer.on("error", (err) => {
-                    console.error("Peer error (Initiator):", err);
-                    if (err.code === 'ERR_DATA_CHANNEL') return; // Ignore data channel issues
+                    console.error("[RTC] Peer error (Initiator):", err);
+                    if (err.code === 'ERR_DATA_CHANNEL') return;
                     resetState();
                 });
 
                 peer.on("close", () => {
-                    console.log("Peer connection closed (Initiator)");
+                    console.log("[RTC] Peer connection closed (Initiator)");
                     resetState();
                 });
 
                 connectionRef.current = peer;
             })
             .catch(err => {
-                console.error("Failed to get local stream", err);
+                console.error("[RTC] Failed to get local stream", err);
                 alert("Could not access camera/microphone. Please check permissions.");
                 resetState();
             });
     };
 
     const answerCall = () => {
-        console.log("Answering call from:", caller);
-        setCallAccepted(true);
+        console.log("[RTC] Answering call from:", caller);
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then((currentStream) => {
@@ -173,38 +180,38 @@ export const useWebRTC = (otherUserId: string | null) => {
                 });
 
                 peer.on("signal", (data) => {
-                    console.log("Peer signaling (Receiver):", data.type || "candidate");
-                    // Send answer and candidates via unified call-signal
+                    console.log("[RTC] Signaling (Receiver):", data.type || "candidate");
                     socket?.emit("call-signal", { to: caller, signal: data });
                 });
 
                 peer.on("stream", (remoteStream) => {
-                    console.log("Received remote stream (Receiver)");
+                    console.log("[RTC] Received remote stream (Receiver)");
                     if (userVideo.current) userVideo.current.srcObject = remoteStream;
+                    setCallAccepted(true);
                 });
 
                 peer.on("error", (err) => {
-                    console.error("Peer error (Receiver):", err);
+                    console.error("[RTC] Peer error (Receiver):", err);
                     resetState();
                 });
 
                 peer.on("close", () => {
-                    console.log("Peer connection closed (Receiver)");
+                    console.log("[RTC] Peer connection closed (Receiver)");
                     resetState();
                 });
 
                 if (callerSignal) {
-                    console.log("Applying initial offer to receiver peer...");
+                    console.log("[RTC] Applying initial offer to receiver peer...");
                     try {
                         peer.signal(callerSignal);
                     } catch (e) {
-                        console.error("Error applying initial offer:", e);
+                        console.error("[RTC] Error applying initial offer:", e);
                     }
                 }
                 connectionRef.current = peer;
             })
             .catch(err => {
-                console.error("Failed to get local stream on answer", err);
+                console.error("[RTC] Failed to get local stream on answer", err);
                 alert("Could not access camera/microphone to answer call.");
                 resetState();
             });

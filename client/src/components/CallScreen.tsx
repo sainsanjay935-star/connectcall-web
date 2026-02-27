@@ -16,6 +16,7 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
     const [isVideoOff, setIsVideoOff] = React.useState(false);
     const [isSpeakerOn, setIsSpeakerOn] = React.useState(true);
     const [callDuration, setCallDuration] = React.useState(0);
+    const [isConnecting, setIsConnecting] = React.useState(true);
 
     React.useEffect(() => {
         const interval = setInterval(() => {
@@ -23,6 +24,16 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
         }, 1000);
         return () => clearInterval(interval);
     }, []);
+
+    React.useEffect(() => {
+        const checkStream = setInterval(() => {
+            if (userVideoRef.current && userVideoRef.current.srcObject) {
+                setIsConnecting(false);
+                clearInterval(checkStream);
+            }
+        }, 500);
+        return () => clearInterval(checkStream);
+    }, [userVideoRef]);
 
     const formatDuration = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -68,7 +79,13 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
                 </div>
                 <div className="flex flex-col items-center mt-1 text-white">
                     <h2 className="text-xl font-bold tracking-tight">{name}</h2>
-                    <span className="text-sm font-medium opacity-80">{formatDuration(callDuration)}</span>
+                    <span className="text-sm font-medium opacity-80">
+                        {isConnecting ? (
+                            <span className="animate-pulse">Connecting...</span>
+                        ) : (
+                            formatDuration(callDuration)
+                        )}
+                    </span>
                 </div>
             </div>
 
@@ -77,7 +94,6 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
                 {/* Remote Content */}
                 {isVideoOff ? (
                     <div className="h-full w-full flex items-center justify-center p-4">
-                        {/* Background Blur Image */}
                         <div className="absolute inset-0 opacity-40 blur-3xl scale-125">
                             <div className="h-full w-full bg-[#128c7e] rounded-full" />
                         </div>
@@ -88,17 +104,27 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
                         </div>
                     </div>
                 ) : (
-                    <video
-                        playsInline
-                        ref={userVideoRef}
-                        autoPlay
-                        className="h-full w-full object-cover"
-                    />
+                    <div className="h-full w-full">
+                        {isConnecting && (
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                                <div className="flex flex-col items-center space-y-4">
+                                    <div className="w-12 h-12 border-4 border-[#25d366]/30 border-t-[#25d366] rounded-full animate-spin" />
+                                    <p className="text-white text-sm font-medium tracking-widest uppercase">Establishing Connection</p>
+                                </div>
+                            </div>
+                        )}
+                        <video
+                            playsInline
+                            ref={userVideoRef}
+                            autoPlay
+                            className="h-full w-full object-cover"
+                        />
+                    </div>
                 )}
 
-                {/* Local Video Overlay (Only in VC) */}
+                {/* Local Video Overlay */}
                 {!isVideoOff && (
-                    <div className="absolute bottom-28 right-4 w-24 h-36 md:w-32 md:h-48 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black">
+                    <div className="absolute bottom-28 right-4 w-24 h-36 md:w-32 md:h-48 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black z-20">
                         <video
                             playsInline
                             muted

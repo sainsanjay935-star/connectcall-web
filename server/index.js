@@ -110,27 +110,28 @@ io.on('connection', (socket) => {
 
     // WebRTC Signaling
     socket.on('call-user', ({ to, offer, from, name }) => {
-        console.log(`Call from ${from} (${name}) to ${to}`);
+        console.log(`[RTC] Call initiated: FROM ${from} (${name}) TO ${to}`);
         socket.to(to).emit('incoming-call', { from, offer, name });
     });
 
     socket.on('answer-call', ({ to, answer }) => {
-        console.log(`Call answered by user to: ${to}`);
+        console.log(`[RTC] Call answered: BY ${users.get(socket.id)} TO ${to}`);
         socket.to(to).emit('call-answered', { answer });
     });
 
     socket.on('ice-candidate', ({ to, candidate }) => {
-        console.log(`ICE candidate sent to: ${to}`);
+        console.log(`[RTC] ICE Candidate: FROM ${users.get(socket.id)} TO ${to}`);
         socket.to(to).emit('ice-candidate', { candidate });
     });
 
     socket.on('call-signal', ({ to, signal }) => {
-        console.log(`Generic signal sent to: ${to}`);
-        socket.to(to).emit('call-signal', { signal, from: users.get(socket.id) });
+        const from = users.get(socket.id);
+        console.log(`[RTC] Unified Signal (${signal.type || 'candidate'}): FROM ${from} TO ${to}`);
+        socket.to(to).emit('call-signal', { signal, from });
     });
 
     socket.on('end-call', ({ to }) => {
-        console.log(`Call ended for: ${to}`);
+        console.log(`[RTC] Call ended: BY ${users.get(socket.id)} FOR ${to}`);
         socket.to(to).emit('call-ended');
     });
 

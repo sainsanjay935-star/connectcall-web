@@ -37,6 +37,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Reset isCalling when call is accepted or ended
     useEffect(() => {
         if (callAccepted) {
+            console.log("[CallContext] Call accepted, stopping ringing");
             setIsCalling(false);
         }
     }, [callAccepted]);
@@ -44,10 +45,12 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         // Handle ringing sound for incoming call
         if (receivingCall && !callAccepted) {
-            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3');
-            audio.loop = true;
-            audio.play().catch(e => console.log('Audio play failed:', e));
-            setRingingAudio(audio);
+            if (!ringingAudio) {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3');
+                audio.loop = true;
+                audio.play().catch(e => console.log('[CallContext] Audio play failed:', e));
+                setRingingAudio(audio);
+            }
         } else {
             if (ringingAudio) {
                 ringingAudio.pause();
@@ -56,9 +59,12 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         }
         return () => {
-            if (ringingAudio) ringingAudio.pause();
+            if (ringingAudio) {
+                ringingAudio.pause();
+                setRingingAudio(null);
+            }
         };
-    }, [receivingCall, callAccepted]);
+    }, [receivingCall, callAccepted, ringingAudio]);
 
     const handleCallUser = (id: string) => {
         setTargetUserId(id);
