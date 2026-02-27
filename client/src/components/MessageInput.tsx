@@ -55,7 +55,6 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
             const baseUrl = getApiBaseUrl();
             const uploadRes = await axios.post(`${baseUrl}/api/media/upload`, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`
                 }
             });
@@ -91,7 +90,6 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
             const baseUrl = getApiBaseUrl();
             const uploadRes = await axios.post(`${baseUrl}/api/media/upload`, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`
                 }
             });

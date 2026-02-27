@@ -7,6 +7,12 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+const fs = require('fs');
+
+// Ensure uploads directory exists
+if (!fs.existsSync('uploads')) {
+    fs.mkdirSync('uploads');
+}
 
 // CORS configuration for production
 const allowedOrigins = [
