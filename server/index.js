@@ -109,9 +109,9 @@ io.on('connection', (socket) => {
     socket.on('stop typing', (room) => socket.in(room).emit('stop typing'));
 
     // WebRTC Signaling
-    socket.on('call-user', ({ to, offer, from, name }) => {
-        console.log(`[RTC] Call initiated: FROM ${from} (${name}) TO ${to}`);
-        socket.to(to).emit('incoming-call', { from, offer, name });
+    socket.on('call-user', ({ to, offer, from, name, callType }) => {
+        console.log(`[RTC] Call initiated: FROM ${from} (${name}) TO ${to} Type: ${callType}`);
+        socket.to(to).emit('incoming-call', { from, offer, name, callType });
     });
 
     socket.on('answer-call', ({ to, answer }) => {
