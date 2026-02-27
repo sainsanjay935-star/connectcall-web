@@ -163,8 +163,16 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
                 <div className="flex items-center space-x-4 md:space-x-6 text-[#54656f] dark:text-[#aebac1]">
                     {!header.isGroup && (
                         <>
-                            <Video size={18} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" onClick={() => callUser(otherParticipant?._id)} />
-                            <Phone size={18} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" onClick={() => callUser(otherParticipant?._id)} />
+                            <Video
+                                size={18}
+                                className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors"
+                                onClick={() => callUser(otherParticipant?._id, false)}
+                            />
+                            <Phone
+                                size={18}
+                                className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors"
+                                onClick={() => callUser(otherParticipant?._id, true)}
+                            />
                         </>
                     )}
                     <MoreVertical size={18} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" />

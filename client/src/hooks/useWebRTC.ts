@@ -17,6 +17,7 @@ export const useWebRTC = (otherUserId: string | null) => {
     const [callAccepted, setCallAccepted] = useState(false);
     const [callEnded, setCallEnded] = useState(false);
     const [name, setName] = useState("");
+    const [callType, setCallType] = useState<'video' | 'audio'>('video');
 
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);
@@ -83,11 +84,12 @@ export const useWebRTC = (otherUserId: string | null) => {
         if (!socket) return;
 
         socket.on("incoming-call", (data) => {
-            console.log("Incoming call from:", data.from, data.name);
+            console.log("Incoming call from:", data.from, data.name, "Type:", data.callType);
             setReceivingCall(true);
             setCaller(data.from);
             setName(data.name);
             setCallerSignal(data.offer);
+            setCallType(data.callType || 'video');
         });
 
         // Unified signaling listener (Answers and ICE Candidates)
@@ -140,20 +142,26 @@ export const useWebRTC = (otherUserId: string | null) => {
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun3.l.google.com:19302' },
                 { urls: 'stun:stun4.l.google.com:19302' },
-                // Note: In production, you should add YOUR TURN server here
-                // {
-                //     urls: 'turn:your-turn-server.com',
-                //     username: 'username',
-                //     credential: 'password'
-                // }
+                // Production: Use environment variables for TURN server
+                ...(process.env.NEXT_PUBLIC_TURN_URL ? [{
+                    urls: process.env.NEXT_PUBLIC_TURN_URL,
+                    username: process.env.NEXT_PUBLIC_TURN_USERNAME,
+                    credential: process.env.NEXT_PUBLIC_TURN_PASSWORD
+                }] : [])
             ]
         },
         trickle: true,
     };
 
-    const callUser = (id: string) => {
-        console.log("[RTC] Initiating call to:", id);
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    const callUser = (id: string, isAudioOnly: boolean = false) => {
+        const type = isAudioOnly ? 'audio' : 'video';
+        setCallType(type);
+        console.log(`[RTC] Initiating ${type} call to:`, id);
+
+        navigator.mediaDevices.getUserMedia({
+            video: !isAudioOnly,
+            audio: true
+        })
             .then((currentStream) => {
                 setStream(currentStream);
                 if (myVideo.current) myVideo.current.srcObject = currentStream;
@@ -189,6 +197,7 @@ export const useWebRTC = (otherUserId: string | null) => {
                             offer: data,
                             from: user?.id,
                             name: user?.username,
+                            callType: type
                         });
                     } else {
                         socket?.emit("call-signal", { to: id, signal: data });
@@ -233,7 +242,10 @@ export const useWebRTC = (otherUserId: string | null) => {
         // Set call accepted early so UI renders and refs are available
         setCallAccepted(true);
 
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        navigator.mediaDevices.getUserMedia({
+            video: callType === 'video',
+            audio: true
+        })
             .then((currentStream) => {
                 setStream(currentStream);
 
@@ -311,6 +323,7 @@ export const useWebRTC = (otherUserId: string | null) => {
         callAccepted,
         callEnded,
         name,
+        callType,
         callUser,
         answerCall,
         leaveCall,

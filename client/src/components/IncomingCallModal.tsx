@@ -7,9 +7,10 @@ interface IncomingCallModalProps {
     name: string;
     onAccept: () => void;
     onReject: () => void;
+    callType?: 'video' | 'audio'; // Added
 }
 
-export default function IncomingCallModal({ name, onAccept, onReject }: IncomingCallModalProps) {
+export default function IncomingCallModal({ name, onAccept, onReject, callType = 'video' }: IncomingCallModalProps) {
     return (
         <div className="fixed inset-0 z-[10000] flex flex-col bg-[#0b141a] animate-in fade-in zoom-in duration-300">
             {/* Background Profile Blur */}
@@ -31,7 +32,7 @@ export default function IncomingCallModal({ name, onAccept, onReject }: Incoming
                         <h2 className="text-3xl font-bold text-white tracking-tight">{name}</h2>
                         <span className="flex items-center justify-center space-x-2 text-[#25d366] font-medium animate-pulse">
                             <Phone size={16} fill="currentColor" />
-                            <span className="uppercase text-xs tracking-[0.2em]">WhatsApp Video Call...</span>
+                            <span className="uppercase text-xs tracking-[0.2em]">WhatsApp {callType === 'video' ? 'Video' : 'Voice'} Call...</span>
                         </span>
                     </div>
                 </div>

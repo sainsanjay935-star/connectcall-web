@@ -7,12 +7,13 @@ import CallScreen from '@/components/CallScreen';
 import IncomingCallModal from '@/components/IncomingCallModal';
 
 interface CallContextType {
-    callUser: (id: string) => void;
+    callUser: (id: string, isAudioOnly?: boolean) => void;
     answerCall: () => void;
     leaveCall: () => void;
     receivingCall: boolean;
     callAccepted: boolean;
     name: string;
+    callType: 'video' | 'audio';
 }
 
 const CallContext = createContext<CallContextType | undefined>(undefined);
@@ -32,7 +33,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         leaveCall,
         name,
         stream,
-        remoteStream
+        remoteStream,
+        callType
     } = useWebRTC(targetUserId);
 
     // Reset isCalling when call is accepted or ended
@@ -67,10 +69,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [receivingCall, callAccepted, ringingAudio]);
 
-    const handleCallUser = (id: string) => {
+    const handleCallUser = (id: string, isAudioOnly: boolean = false) => {
         setTargetUserId(id);
         setIsCalling(true);
-        callUser(id);
+        callUser(id, isAudioOnly);
     };
 
     const handleLeaveCall = () => {
@@ -86,7 +88,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             leaveCall: handleLeaveCall,
             receivingCall,
             callAccepted,
-            name
+            name,
+            callType
         }}>
             {children}
 
@@ -96,6 +99,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     name={name || "Incoming Call"}
                     onAccept={answerCall}
                     onReject={handleLeaveCall}
+                    callType={callType}
                 />
             )}
 
@@ -140,6 +144,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     onEndCall={handleLeaveCall}
                     stream={stream}
                     remoteStream={remoteStream}
+                    callType={callType}
                 />
             )}
         </CallContext.Provider>
