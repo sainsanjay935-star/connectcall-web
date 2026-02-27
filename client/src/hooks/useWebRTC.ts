@@ -64,11 +64,18 @@ export const useWebRTC = (otherUserId: string | null) => {
         // Unified signaling listener (Answers and ICE Candidates)
         socket.on("call-signal", (data) => {
             if (!data.signal) return;
-            console.log("Received call-signal:", data.signal.type || "candidate");
+
+            // Defensive: Check if candidate signals are malformed
+            if (!data.signal.type && !data.signal.candidate && data.signal.candidate !== "") {
+                console.log("[RTC] Received potentially malformed signal, skipping:", data.signal);
+                return;
+            }
+
+            console.log(`[RTC] Received call-signal: ${data.signal.type || "candidate"} from ${data.from}`);
 
             // Critical: If initiator receives 'answer', transition to callAccepted
             if (data.signal.type === 'answer') {
-                console.log("Setting callAccepted to true for initiator");
+                console.log("[RTC] Setting callAccepted to true for initiator");
                 setCallAccepted(true);
             }
 
@@ -76,8 +83,10 @@ export const useWebRTC = (otherUserId: string | null) => {
                 try {
                     connectionRef.current.signal(data.signal);
                 } catch (e) {
-                    console.error("Error applying signal to peer:", e);
+                    console.error("[RTC] Error applying signal to peer:", e);
                 }
+            } else {
+                console.log("[RTC] Peer not ready or destroyed, ignoring signal");
             }
         });
 
@@ -140,12 +149,16 @@ export const useWebRTC = (otherUserId: string | null) => {
                 });
 
                 peer.on("stream", (remoteStream) => {
-                    console.log("[RTC] Received remote stream (Initiator)");
-                    if (userVideo.current) userVideo.current.srcObject = remoteStream;
+                    console.log("[RTC] Received remote stream:", remoteStream.id);
+                    console.log("[RTC] Tracks visibility:", remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled ? 'enabled' : 'disabled'}`));
+                    if (userVideo.current) {
+                        userVideo.current.srcObject = remoteStream;
+                        userVideo.current.play().catch(e => console.error("[RTC] Error playing remote video:", e));
+                    }
                     setCallAccepted(true); // Ensure state transition on stream reception
                 });
 
-                peer.on("error", (err) => {
+                peer.on("error", (err: any) => {
                     console.error("[RTC] Peer error (Initiator):", err);
                     if (err.code === 'ERR_DATA_CHANNEL') return;
                     resetState();
@@ -185,12 +198,16 @@ export const useWebRTC = (otherUserId: string | null) => {
                 });
 
                 peer.on("stream", (remoteStream) => {
-                    console.log("[RTC] Received remote stream (Receiver)");
-                    if (userVideo.current) userVideo.current.srcObject = remoteStream;
+                    console.log("[RTC] Received remote stream:", remoteStream.id);
+                    console.log("[RTC] Tracks visibility:", remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled ? 'enabled' : 'disabled'}`));
+                    if (userVideo.current) {
+                        userVideo.current.srcObject = remoteStream;
+                        userVideo.current.play().catch(e => console.error("[RTC] Error playing remote video:", e));
+                    }
                     setCallAccepted(true);
                 });
 
-                peer.on("error", (err) => {
+                peer.on("error", (err: any) => {
                     console.error("[RTC] Peer error (Receiver):", err);
                     resetState();
                 });
