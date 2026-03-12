@@ -1,21 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Smile, Paperclip, Send, Mic, MicOff, Check } from 'lucide-react';
+import { Smile, Paperclip, Send, Mic, MicOff, Check, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import { VoiceRecorder } from '@/utils/VoiceRecorder';
-import { encryptMessage } from '@/utils/encryption';
+import { encryptMessage, decryptMessage } from '@/utils/encryption';
 
 interface MessageInputProps {
     chatId: string;
     onMessageSent: (message: any) => void;
+    replyingTo?: any;
+    clearReply?: () => void;
 }
 
-export default function MessageInput({ chatId, onMessageSent }: MessageInputProps) {
+export default function MessageInput({ chatId, onMessageSent, replyingTo, clearReply }: MessageInputProps) {
     const { token } = useAuth();
     const { socket } = useSocket();
     const [content, setContent] = useState('');
@@ -61,7 +63,7 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
 
             const response = await axios.post(
                 `${baseUrl}/api/chats/message`,
-                { chatId, content: 'Voice Message', messageType: 'voice', fileUrl: uploadRes.data.url },
+                { chatId, content: 'Voice Message', messageType: 'voice', fileUrl: uploadRes.data.url, replyTo: replyingTo?._id },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -100,7 +102,7 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
 
             const response = await axios.post(
                 `${baseUrl}/api/chats/message`,
-                { chatId, content: file.name, messageType, fileUrl: uploadRes.data.url },
+                { chatId, content: file.name, messageType, fileUrl: uploadRes.data.url, replyTo: replyingTo?._id },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -122,12 +124,13 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
             const baseUrl = getApiBaseUrl();
             const response = await axios.post(
                 `${baseUrl}/api/chats/message`,
-                { chatId, content: encryptedContent, messageType: 'text' },
+                { chatId, content: encryptedContent, messageType: 'text', replyTo: replyingTo?._id },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
             socket?.emit('new message', response.data);
             onMessageSent(response.data);
+            if (clearReply) clearReply();
         } catch (err) {
             console.error(err);
         }
@@ -175,8 +178,32 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const renderReplyingToMessage = () => {
+        if (!replyingTo) return null;
+        let snippet = replyingTo.content;
+        if (replyingTo.messageType === 'text') snippet = decryptMessage(replyingTo.content);
+        if (replyingTo.messageType === 'image') snippet = '📷 Photo';
+        if (replyingTo.messageType === 'video') snippet = '🎥 Video';
+        if (replyingTo.messageType === 'voice') snippet = '🎤 Voice message';
+        if (replyingTo.isDeleted) snippet = '🚫 This message was deleted';
+
+        return (
+            <div className="flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33] px-4 py-2 border-l-4 border-[#25d366] mb-1 rounded-tr-lg rounded-br-lg mx-2 text-sm">
+                <div className="flex flex-col truncate">
+                    <span className="font-semibold text-[#25d366] text-[13px]">{replyingTo.sender?.username || 'User'}</span>
+                    <span className="text-[#667781] dark:text-[#aebac1] truncate">{snippet}</span>
+                </div>
+                <button onClick={clearReply} className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-full text-[#54656f] dark:text-[#aebac1]">
+                    <X size={18} />
+                </button>
+            </div>
+        );
+    };
+
     return (
-        <div className="relative flex min-h-[62px] items-center bg-[#f0f2f5] px-2 md:px-4 py-2 dark:bg-[#202c33] shrink-0 border-t border-[#d1d7db] dark:border-[#2a3942]">
+        <div className="flex flex-col w-full bg-[#f0f2f5] dark:bg-[#202c33] shrink-0 border-t border-[#d1d7db] dark:border-[#2a3942]">
+            {renderReplyingToMessage()}
+            <div className="relative flex min-h-[62px] items-center px-2 md:px-4 py-2">
             {isRecording ? (
                 <div className="flex-1 flex items-center justify-between bg-white dark:bg-[#2a3942] rounded-xl px-4 py-2 mx-2 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex items-center space-x-3">
@@ -259,6 +286,7 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
                     </button>
                 )}
             </div>
+        </div>
         </div>
     );
 }

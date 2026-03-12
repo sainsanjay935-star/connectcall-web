@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Paperclip, Edit2, Trash2, X, Check, CheckCheck } from 'lucide-react';
+import { Paperclip, Edit2, Trash2, X, Check, CheckCheck, Reply } from 'lucide-react';
 import { decryptMessage, encryptMessage } from '@/utils/encryption';
 import { useSocket } from '@/context/SocketContext';
 import VoicePlayer from './VoicePlayer';
@@ -10,9 +10,10 @@ interface MessageListProps {
     messages: any[];
     userId?: string;
     chatId: string;
+    onReply?: (message: any) => void;
 }
 
-export default function MessageList({ messages: initialMessages, userId, chatId }: MessageListProps) {
+export default function MessageList({ messages: initialMessages, userId, chatId, onReply }: MessageListProps) {
     const [messages, setMessages] = useState(initialMessages);
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState('');
@@ -102,6 +103,42 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
         setEditingMessageId(null);
     };
 
+    const handleScrollToMessage = (msgId: string) => {
+        const element = document.getElementById(`message-${msgId}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('ring-2', 'ring-[#25d366]', 'ring-offset-2', 'dark:ring-offset-[#0b141a]', 'scale-[1.02]');
+            setTimeout(() => {
+                element.classList.remove('ring-2', 'ring-[#25d366]', 'ring-offset-2', 'dark:ring-offset-[#0b141a]', 'scale-[1.02]');
+            }, 1500);
+        }
+    };
+
+    const renderReplyBox = (msg: any) => {
+        if (!msg.replyTo) return null;
+        let snippet = msg.replyTo.content;
+        if (msg.replyTo.messageType === 'text') snippet = decryptMessage(msg.replyTo.content);
+        if (msg.replyTo.messageType === 'image') snippet = '📷 Photo';
+        if (msg.replyTo.messageType === 'video') snippet = '🎥 Video';
+        if (msg.replyTo.messageType === 'voice') snippet = '🎤 Voice message';
+        if (msg.replyTo.isDeleted) snippet = '🚫 This message was deleted';
+        
+        const senderName = msg.replyTo.sender?._id === userId ? 'You' : (msg.replyTo.sender?.username || 'User');
+
+        return (
+            <div 
+                className="mb-2 rounded-lg border-l-4 border-[#25d366] bg-black/5 p-2 dark:bg-white/5 text-sm cursor-pointer hover:bg-black/10 transition flex flex-col opacity-90"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleScrollToMessage(msg.replyTo._id);
+                }}
+            >
+                <span className="font-semibold text-[#25d366] text-[13px]">{senderName}</span>
+                <span className="text-[#54656f] dark:text-[#aebac1] line-clamp-1 text-xs mt-0.5">{snippet}</span>
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col space-y-2 p-6">
             {messages.map((msg, idx) => {
@@ -113,13 +150,14 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
                         className={`flex w-full mb-1 ${isMine ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
+                            id={`message-${msg._id}`}
                             className={`group relative max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm rounded-xl ${isMine
                                 ? 'bg-[#dcf8c6] dark:bg-[#005c4b] rounded-tr-none'
                                 : 'bg-white dark:bg-[#202c33] rounded-tl-none'
-                                } ${isDeleted ? 'opacity-70 italic' : ''} transition-all duration-200 ease-in-out`}
+                                } ${isDeleted ? 'opacity-70 italic' : ''} transition-all duration-300 ease-in-out`}
                         >
                             {!isMine && !isDeleted && (
-                                <div className="absolute -right-12 top-0 hidden group-hover:block">
+                                <div className="absolute -right-20 top-0 hidden group-hover:block z-10">
                                     <div className="flex space-x-1 rounded-full bg-white p-1 shadow-md dark:bg-[#2a3942]">
                                         {['❤️', '👍', '😂'].map(emoji => (
                                             <span
@@ -130,13 +168,19 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
                                                 {emoji}
                                             </span>
                                         ))}
+                                        {onReply && (
+                                            <button onClick={() => onReply(msg)} className="text-gray-500 hover:text-blue-500 transition px-1"><Reply size={14} /></button>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
                             {isMine && !isDeleted && (
-                                <div className="absolute -left-16 top-0 hidden group-hover:flex space-x-1">
+                                <div className="absolute -left-20 top-0 hidden group-hover:flex space-x-1 z-10">
                                     <div className="flex space-x-1 rounded-full bg-white p-1 shadow-md dark:bg-[#2a3942]">
+                                        {onReply && (
+                                            <button onClick={() => onReply(msg)} className="text-gray-500 hover:text-blue-500 transition"><Reply size={14} /></button>
+                                        )}
                                         <button onClick={() => startEdit(msg)} className="text-gray-500 hover:text-blue-500 transition"><Edit2 size={14} /></button>
                                         <button onClick={() => deleteMessage(msg._id)} className="text-gray-500 hover:text-red-500 transition"><Trash2 size={14} /></button>
                                     </div>
@@ -157,6 +201,7 @@ export default function MessageList({ messages: initialMessages, userId, chatId 
                                 </div>
                             ) : (
                                 <>
+                                    {renderReplyBox(msg)}
                                     {msg.messageType === 'image' ? (
                                         <div className="mb-1 overflow-hidden rounded-lg border border-black/5 dark:border-white/5">
                                             <img src={msg.fileUrl} alt="sent image" className="max-h-[300px] w-full object-cover cursor-pointer hover:opacity-95 transition-opacity" />

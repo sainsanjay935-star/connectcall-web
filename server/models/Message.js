@@ -21,6 +21,11 @@ const messageSchema = new mongoose.Schema({
         default: 'text'
     },
     fileUrl: String,
+    replyTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Message',
+        default: null
+    },
     readBy: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

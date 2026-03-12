@@ -9,6 +9,8 @@ import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import MessageSkeleton from './MessageSkeleton';
+import { ChevronDown } from 'lucide-react';
 
 interface ChatWindowProps {
     chat: any;
@@ -21,6 +23,12 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
     const { callUser } = useCall();
     const [messages, setMessages] = useState<any[]>([]);
     const [isTyping, setIsTyping] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [showScrollButton, setShowScrollButton] = useState(false);
+
+    // Scroll ref for jumping to latest message
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     // Initial participant extraction (only for 1-on-1)
     const initialOtherUser = chat.isGroupChat ? null : chat.participants.find((p: any) => p._id !== user?.id);
@@ -43,8 +51,10 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setMessages(response.data);
+                setIsLoading(false);
             } catch (err) {
                 console.error(err);
+                setIsLoading(false);
             }
         };
 
@@ -130,6 +140,25 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
         };
     };
 
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        // If we are scrolled up by more than 200px, show the button
+        if (scrollHeight - scrollTop - clientHeight > 200) {
+            setShowScrollButton(true);
+        } else {
+            setShowScrollButton(false);
+        }
+    };
+
+    const scrollToBottom = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    };
+
     const header = getChatHeaderInfo();
 
     return (
@@ -179,11 +208,28 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
                 </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
-                <MessageList messages={messages} userId={user?.id} chatId={chat._id} />
+            <div 
+                className="flex-1 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat relative"
+                onScroll={handleScroll}
+                ref={scrollContainerRef}
+            >
+                {isLoading ? (
+                    <MessageSkeleton />
+                ) : (
+                    <MessageList messages={messages} userId={user?.id} chatId={chat._id} onReply={setReplyingTo} />
+                )}
+
+                {showScrollButton && !isLoading && (
+                    <button
+                        onClick={scrollToBottom}
+                        className="fixed bottom-20 right-4 p-3 bg-white dark:bg-[#202c33] rounded-full shadow-lg border border-black/5 dark:border-white/5 text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5 transition z-50 animate-in fade-in zoom-in"
+                    >
+                        <ChevronDown size={20} />
+                    </button>
+                )}
             </div>
 
-            <MessageInput chatId={chat._id} onMessageSent={(m) => setMessages((prev) => [...prev, m])} />
+            <MessageInput chatId={chat._id} onMessageSent={(m) => setMessages((prev) => [...prev, m])} replyingTo={replyingTo} clearReply={() => setReplyingTo(null)} />
         </div >
     );
 }
