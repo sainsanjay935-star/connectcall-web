@@ -6,6 +6,7 @@ const auth = require('../middleware/auth');
 router.get('/search', auth, searchUsers);
 router.get('/suggested', auth, getSuggestedUsers);
 router.get('/profile/:userId', auth, getProfile);
+router.put('/update-profile', auth, require('../controllers/userController').updateProfile);
 router.post('/reset-data', auth, resetUserData);
 
 module.exports = router;

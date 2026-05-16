@@ -68,20 +68,27 @@ const resetUserData = async (req, res) => {
     }
 };
 
-const getSuggestedUsers = async (req, res) => {
+const updateProfile = async (req, res) => {
     try {
-        // Find 10 users that are NOT the current user
-        const users = await User.find({
-            _id: { $ne: req.user.userId }
-        })
-            .select('uniqueId username profilePhoto statusMessage isOnline')
-            .limit(10)
-            .sort({ createdAt: -1 });
+        const { username, statusMessage, profilePhoto } = req.body;
+        const userId = req.user.userId;
 
-        res.json(users);
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { 
+                $set: { 
+                    username: username || undefined, 
+                    statusMessage: statusMessage || undefined,
+                    profilePhoto: profilePhoto || undefined
+                } 
+            },
+            { new: true }
+        ).select('-password');
+
+        res.json(updatedUser);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
-module.exports = { searchUsers, getProfile, resetUserData, getSuggestedUsers };
+module.exports = { searchUsers, getProfile, resetUserData, getSuggestedUsers, updateProfile };

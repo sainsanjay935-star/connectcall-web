@@ -165,7 +165,7 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
         <div className="flex h-full flex-col bg-[#efeae2] dark:bg-[#0b141a]">
             {/* Global Calling UI is now handled in CallProvider */}
 
-            <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-3 md:px-4 py-2 dark:bg-[#202c33] border-b border-[#d1d7db] dark:border-[#2a3942] z-10 shadow-sm md:shadow-none">
+            <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-3 md:px-4 py-2 dark:bg-[#202c33] border-b border-[#d1d7db] dark:border-[#2a3942] z-10 shadow-sm transition-premium">
                 <div className="flex items-center space-x-2 md:space-x-3 overflow-hidden">
                     {/* Back Button for mobile */}
                     <div
@@ -193,18 +193,18 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
                     {!header.isGroup && (
                         <>
                             <Video
-                                size={18}
-                                className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors"
+                                size={20}
+                                className="cursor-pointer hover:text-whatsapp-green dark:hover:text-white transition-premium"
                                 onClick={() => callUser(otherParticipant?._id, false)}
                             />
                             <Phone
                                 size={18}
-                                className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors"
+                                className="cursor-pointer hover:text-whatsapp-green dark:hover:text-white transition-premium"
                                 onClick={() => callUser(otherParticipant?._id, true)}
                             />
                         </>
                     )}
-                    <MoreVertical size={18} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" />
+                    <MoreVertical size={20} className="cursor-pointer hover:text-whatsapp-green dark:hover:text-white transition-premium" />
                 </div>
             </header>
 

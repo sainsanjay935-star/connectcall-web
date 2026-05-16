@@ -9,6 +9,7 @@ import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import { VoiceRecorder } from '@/utils/VoiceRecorder';
 import { encryptMessage, decryptMessage } from '@/utils/encryption';
+import { ChevronLeft } from 'lucide-react';
 
 interface MessageInputProps {
     chatId: string;
@@ -205,15 +206,20 @@ export default function MessageInput({ chatId, onMessageSent, replyingTo, clearR
             {renderReplyingToMessage()}
             <div className="relative flex min-h-[62px] items-center px-2 md:px-4 py-2">
             {isRecording ? (
-                <div className="flex-1 flex items-center justify-between bg-white dark:bg-[#2a3942] rounded-xl px-4 py-2 mx-2 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex-1 flex items-center justify-between bg-white dark:bg-[#2a3942] rounded-full px-4 py-2.5 mx-2 shadow-sm animate-in slide-in-from-right-4 duration-300">
                     <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                        <span className="text-sm font-medium dark:text-white">{formatRecordTime(recordTime)}</span>
+                        <div className="flex items-center space-x-1.5">
+                            <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                            <span className="text-[15px] font-medium dark:text-white tabular-nums">{formatRecordTime(recordTime)}</span>
+                        </div>
                     </div>
-                    <span className="text-xs text-[#667781] dark:text-[#8696a0] animate-pulse">Recording voice message...</span>
+                    <div className="flex items-center text-xs text-[#667781] dark:text-[#8696a0] font-medium tracking-wide">
+                        <ChevronLeft size={14} className="animate-bounce-x mr-1" />
+                        <span>SLIDE TO CANCEL</span>
+                    </div>
                     <button
                         onClick={cancelRecording}
-                        className="text-red-500 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded"
+                        className="text-red-500 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-full transition-premium"
                     >
                         CANCEL
                     </button>

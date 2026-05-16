@@ -1,11 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, MoreVertical, MessageSquare, User, LogOut, Settings, RotateCcw } from 'lucide-react';
+import { Search, MoreVertical, MessageSquare, User, LogOut, Settings, RotateCcw, CircleDashed } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
 import ChatList from './ChatList';
+import StatusList from './StatusList';
+import StatusViewer from './StatusViewer';
+import ProfileModal from './ProfileModal';
+import { CircleDashed } from 'lucide-react';
 
 interface SidebarProps {
     onChatSelect: (chat: any) => void;
@@ -21,6 +25,9 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
     const [showMenu, setShowMenu] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
     const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState<'chats' | 'status'>('chats');
+    const [selectedStatusGroup, setSelectedStatusGroup] = useState<any>(null);
+    const [showProfileModal, setShowProfileModal] = useState(false);
 
     useEffect(() => {
         const fetchSuggested = async () => {
@@ -114,7 +121,10 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
     return (
         <div className="flex h-full flex-col bg-white dark:bg-[#111b21] overflow-hidden">
             <header className="flex h-[60px] items-center justify-between bg-[#f0f2f5] px-4 dark:bg-[#202c33] border-b border-[#d1d7db] dark:border-[#2a3942] shrink-0">
-                <div className="h-10 w-10 overflow-hidden rounded-full bg-[#dfe5e7] border border-black/5">
+                <div 
+                    className="h-10 w-10 overflow-hidden rounded-full bg-[#dfe5e7] border border-black/5 cursor-pointer hover:opacity-80 transition-premium"
+                    onClick={() => setShowProfileModal(true)}
+                >
                     {user?.profilePhoto ? (
                         <img src={user.profilePhoto} alt="Profile" className="h-full w-full object-cover" />
                     ) : (
@@ -124,16 +134,32 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                     )}
                 </div>
                 <div className="flex items-center space-x-3 text-[#54656f] dark:text-[#aebac1]">
-                    <MessageSquare size={22} className="cursor-pointer hover:text-[#128c7e] dark:hover:text-white transition-colors" />
+                    <CircleDashed 
+                        size={22} 
+                        className={`cursor-pointer transition-premium ${activeTab === 'status' ? 'text-whatsapp-green' : 'hover:text-[#128c7e] dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab(activeTab === 'status' ? 'chats' : 'status')}
+                    />
+                    <MessageSquare 
+                        size={22} 
+                        className={`cursor-pointer transition-premium ${activeTab === 'chats' ? 'text-whatsapp-green' : 'hover:text-[#128c7e] dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab('chats')}
+                    />
                     <div className="relative">
                         <MoreVertical
-                            size={22}
-                            className="cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-full p-0.5 transition-colors"
+                            size={20}
+                            className="cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 rounded-full p-1 transition-premium"
                             onClick={() => setShowMenu(!showMenu)}
                         />
 
                         {showMenu && (
                             <div className="absolute right-0 top-10 z-[60] w-52 rounded-md bg-white py-2 shadow-2xl dark:bg-[#233138] border border-black/5 dark:border-white/5">
+                                 <button
+                                    onClick={() => { setShowProfileModal(true); setShowMenu(false); }}
+                                    className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-[#3b4a54] hover:bg-[#f5f6f6] dark:text-[#d1d7db] dark:hover:bg-[#182229] transition-colors"
+                                >
+                                    <User size={18} />
+                                    <span>Profile</span>
+                                </button>
                                 <button
                                     onClick={handleResetData}
                                     disabled={isResetting}
@@ -155,13 +181,13 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                 </div>
             </header>
 
-            <div className="p-2 shrink-0">
-                <div className="relative flex items-center rounded-xl bg-[#f0f2f5] px-4 dark:bg-[#202c33] transition-all focus-within:bg-white dark:focus-within:bg-[#2a3942] focus-within:shadow-sm">
-                    <Search size={16} className="text-[#54656f] dark:text-[#8696a0] shrink-0" />
+            <div className="p-2 shrink-0 border-b border-[#f0f2f5] dark:border-[#2a3942]">
+                <div className="relative flex items-center rounded-lg bg-[#f0f2f5] px-3 dark:bg-[#202c33] transition-premium focus-within:bg-white dark:focus-within:bg-[#2a3942] focus-within:shadow-sm group">
+                    <Search size={18} className="text-[#54656f] dark:text-[#8696a0] shrink-0 group-focus-within:text-whatsapp-green transition-premium" />
                     <input
                         type="text"
-                        placeholder="Search users..."
-                        className="w-full bg-transparent p-2.5 text-sm text-[#3b4a54] outline-none dark:text-[#d1d7db] placeholder:text-[#667781] dark:placeholder:text-[#8696a0]"
+                        placeholder="Search or start new chat"
+                        className="w-full bg-transparent p-2 text-[14px] text-[#3b4a54] outline-none dark:text-[#d1d7db] placeholder:text-[#667781] dark:placeholder:text-[#8696a0]"
                         value={searchQuery}
                         onChange={handleSearchChange}
                     />
@@ -171,6 +197,7 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
             <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 {isSearching ? (
                     <div className="divide-y divide-[#f0f2f5] dark:divide-[#2a3942]">
+                        {/* ... search results mapping ... */}
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
                                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-whatsapp-green border-t-transparent mb-2"></div>
@@ -207,6 +234,8 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                             </div>
                         )}
                     </div>
+                ) : activeTab === 'status' ? (
+                    <StatusList onStatusSelect={(group) => setSelectedStatusGroup(group)} />
                 ) : (
                     <ChatList
                         onChatSelect={onChatSelect}
@@ -248,6 +277,16 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                     />
                 )}
             </div>
+
+            {selectedStatusGroup && (
+                <StatusViewer 
+                    statusGroup={selectedStatusGroup} 
+                    onClose={() => setSelectedStatusGroup(null)} 
+                />
+            )}
+            {showProfileModal && (
+                <ProfileModal onClose={() => setShowProfileModal(false)} />
+            )}
         </div>
     );
 }

@@ -126,16 +126,18 @@ export default function MessageList({ messages: initialMessages, userId, chatId,
         const senderName = msg.replyTo.sender?._id === userId ? 'You' : (msg.replyTo.sender?.username || 'User');
 
         return (
+        return (
             <div 
-                className="mb-2 rounded-lg border-l-4 border-[#25d366] bg-black/5 p-2 dark:bg-white/5 text-sm cursor-pointer hover:bg-black/10 transition flex flex-col opacity-90"
+                className="mb-2 rounded-lg border-l-4 border-[#25d366] bg-black/5 p-2 dark:bg-white/5 text-sm cursor-pointer hover:bg-black/10 transition-premium flex flex-col opacity-90"
                 onClick={(e) => {
                     e.stopPropagation();
                     handleScrollToMessage(msg.replyTo._id);
                 }}
             >
-                <span className="font-semibold text-[#25d366] text-[13px]">{senderName}</span>
+                <span className="font-semibold text-[#25d366] text-[12px]">{senderName}</span>
                 <span className="text-[#54656f] dark:text-[#aebac1] line-clamp-1 text-xs mt-0.5">{snippet}</span>
             </div>
+        );
         );
     };
 
@@ -151,10 +153,10 @@ export default function MessageList({ messages: initialMessages, userId, chatId,
                     >
                         <div
                             id={`message-${msg._id}`}
-                            className={`group relative max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm rounded-xl ${isMine
-                                ? 'bg-[#dcf8c6] dark:bg-[#005c4b] rounded-tr-none'
-                                : 'bg-white dark:bg-[#202c33] rounded-tl-none'
-                                } ${isDeleted ? 'opacity-70 italic' : ''} transition-all duration-300 ease-in-out`}
+                            className={`group relative max-w-[85%] md:max-w-[70%] px-2.5 py-1.5 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] transition-premium ${isMine
+                                ? 'bg-[#dcf8c6] dark:bg-[#005c4b] rounded-tr-none rounded-xl'
+                                : 'bg-white dark:bg-[#202c33] rounded-tl-none rounded-xl'
+                                } ${isDeleted ? 'opacity-70 italic' : ''} hover:shadow-md`}
                         >
                             {!isMine && !isDeleted && (
                                 <div className="absolute -right-20 top-0 hidden group-hover:block z-10">
@@ -233,14 +235,14 @@ export default function MessageList({ messages: initialMessages, userId, chatId,
                                 </>
                             )}
 
-                            <div className="mt-1 flex items-center justify-end space-x-1">
-                                <span className="text-[10px] text-[#667781] dark:text-[#8696a0]">
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            <div className="mt-1 flex items-center justify-end space-x-1 select-none">
+                                <span className="text-[10px] text-[#667781] dark:text-[#8696a0] font-medium">
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()}
                                 </span>
                                 {isMine && !isDeleted && (
-                                    <div className="flex">
+                                    <div className="flex ml-1">
                                         {msg.readBy?.some((id: string) => id !== userId) ? (
-                                            <CheckCheck size={14} className="text-[#53bdeb]" strokeWidth={3} />
+                                            <CheckCheck size={14} className="text-[#53bdeb]" strokeWidth={2.5} />
                                         ) : msg.deliveredTo?.some((id: string) => id !== userId) ? (
                                             <CheckCheck size={14} className="text-[#8696a0]" strokeWidth={2} />
                                         ) : (

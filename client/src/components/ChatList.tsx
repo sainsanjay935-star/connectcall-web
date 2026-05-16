@@ -99,11 +99,11 @@ export default function ChatList({ onChatSelect, selectedChatId, emptyState }: C
                     return (
                         <div
                             key={chat._id}
-                            className={`flex cursor-pointer items-center space-x-3 px-4 py-3 transition-colors active:bg-[#ebebeb] dark:active:bg-[#182229] ${isActive ? 'bg-[#f0f2f5] dark:bg-[#2a3942]' : 'hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]'
+                            className={`flex cursor-pointer items-center space-x-3 px-4 py-3 transition-premium active:bg-[#ebebeb] dark:active:bg-[#182229] ${isActive ? 'bg-[#f0f2f5] dark:bg-[#2a3942]' : 'hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]'
                                 }`}
                             onClick={() => onChatSelect(chat)}
                         >
-                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#dfe5e7] border border-black/5">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#dfe5e7] border border-black/5 shadow-sm">
                                 {otherUser?.profilePhoto ? (
                                     <img src={otherUser.profilePhoto} alt={otherUser.username} className="h-full w-full object-cover" />
                                 ) : (
@@ -112,24 +112,24 @@ export default function ChatList({ onChatSelect, selectedChatId, emptyState }: C
                                     </div>
                                 )}
                                 {isOnline && (
-                                    <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#25d366] dark:border-[#111b21]"></div>
+                                    <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#25d366] dark:border-[#111b21] shadow-sm"></div>
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="font-semibold text-[15px] text-[#111b21] dark:text-[#e9edef] truncate mr-2">
+                                    <h3 className={`font-semibold text-[15px] truncate mr-2 ${isActive ? 'text-[#111b21] dark:text-[#e9edef]' : 'text-[#111b21] dark:text-[#e9edef]'}`}>
                                         {otherUser?.username || 'Unknown User'}
                                     </h3>
-                                    <span className="text-[11px] text-[#667781] dark:text-[#8696a0] shrink-0">
+                                    <span className={`text-[11px] shrink-0 ${chat.unreadCount > 0 ? 'text-whatsapp-green font-semibold' : 'text-[#667781] dark:text-[#8696a0]'}`}>
                                         {chat.lastMessage ? new Date(chat.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between mt-0.5">
-                                    <p className="truncate text-[13px] text-[#667781] dark:text-[#8696a0] flex-1">
+                                    <p className="truncate text-[13px] text-[#667781] dark:text-[#8696a0] flex-1 leading-tight">
                                         {chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}
                                     </p>
                                     {chat.unreadCount > 0 && (
-                                        <span className="mr-4 flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#25d366] text-[11px] font-bold text-white shrink-0 shadow-sm">
+                                        <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#25d366] text-[11px] font-bold text-white shrink-0 shadow-sm ml-2">
                                             {chat.unreadCount}
                                         </span>
                                     )}

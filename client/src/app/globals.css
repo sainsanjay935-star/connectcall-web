@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --background: #ffffff;
+  --foreground: #111b21;
+}
+
+.dark {
+  --background: #111b21;
+  --foreground: #e9edef;
+}
+
 html,
 body {
   height: 100%;
@@ -11,30 +21,55 @@ body {
   overscroll-behavior-y: none;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Custom Scrollbar for a Premium Look */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* WhatsApp Gradient */
 .auth-gradient {
-  background: linear-gradient(135deg, #128C7E 0%, #25D366 100%);
+  background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
 }
 
+/* Chat Bubbles */
 .chat-bubble-mine {
   background-color: #dcf8c6;
   border-radius: 8px 0 8px 8px;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.1);
 }
 
 .chat-bubble-others {
   background-color: #ffffff;
   border-radius: 0 8px 8px 8px;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.1);
 }
 
 .dark .chat-bubble-mine {
-  background-color: #056162;
+  background-color: #005c4b;
   color: #e9edef;
 }
 
@@ -42,3 +77,28 @@ body {
   background-color: #202c33;
   color: #e9edef;
 }
+
+/* Smooth Transitions */
+.transition-premium {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes bounce-x {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-4px); }
+}
+
+.animate-bounce-x {
+  animation: bounce-x 1s infinite;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dark .glass {
+  background: rgba(32, 44, 51, 0.8);
+}
