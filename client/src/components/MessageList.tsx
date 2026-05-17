@@ -126,7 +126,6 @@ export default function MessageList({ messages: initialMessages, userId, chatId,
         const senderName = msg.replyTo.sender?._id === userId ? 'You' : (msg.replyTo.sender?.username || 'User');
 
         return (
-        return (
             <div 
                 className="mb-2 rounded-lg border-l-4 border-[#25d366] bg-black/5 p-2 dark:bg-white/5 text-sm cursor-pointer hover:bg-black/10 transition-premium flex flex-col opacity-90"
                 onClick={(e) => {
@@ -137,7 +136,6 @@ export default function MessageList({ messages: initialMessages, userId, chatId,
                 <span className="font-semibold text-[#25d366] text-[12px]">{senderName}</span>
                 <span className="text-[#54656f] dark:text-[#aebac1] line-clamp-1 text-xs mt-0.5">{snippet}</span>
             </div>
-        );
         );
     };
 

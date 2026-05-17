@@ -9,7 +9,6 @@ import ChatList from './ChatList';
 import StatusList from './StatusList';
 import StatusViewer from './StatusViewer';
 import ProfileModal from './ProfileModal';
-import { CircleDashed } from 'lucide-react';
 
 interface SidebarProps {
     onChatSelect: (chat: any) => void;
