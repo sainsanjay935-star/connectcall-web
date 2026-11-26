@@ -137,12 +137,14 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                     )}
                 </div>
                 <div className="flex items-center space-x-3 text-[#54656f] dark:text-[#aebac1]">
-                    <Users
-                        size={22}
-                        className="cursor-pointer transition-premium hover:text-[#128c7e] dark:hover:text-white"
+                    <button
+                        type="button"
                         title="New Group"
                         onClick={() => setShowCreateGroupModal(true)}
-                    />
+                        className="cursor-pointer transition-premium hover:text-[#128c7e] dark:hover:text-white"
+                    >
+                        <Users size={22} />
+                    </button>
                     <CircleDashed 
                         size={22} 
                         className={`cursor-pointer transition-premium ${activeTab === 'status' ? 'text-whatsapp-green' : 'hover:text-[#128c7e] dark:hover:text-white'}`} 
