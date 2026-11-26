@@ -70,8 +70,8 @@ const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb:/
 mongoose.connect(MONGO_URI)
     .then(() => console.log(`Successfully connected to MongoDB: ${MONGO_URI.split('@')[1] || 'Local'}`))
     .catch(err => {
-        console.error('CRITICAL: MongoDB connection error:', err);
-        console.error('MONGO_URI used:', MONGO_URI);
+        console.error('CRITICAL: MongoDB connection error:', err.message);
+        console.error('MongoDB host:', MONGO_URI.split('@')[1] || 'local');
         // Don't exit process in some environments to allow debugging via logs
         if (process.env.NODE_ENV === 'production') {
             console.error('Exiting due to DB connection failure in production');
