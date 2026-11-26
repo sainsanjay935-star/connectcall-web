@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, MoreVertical, MessageSquare, User, LogOut, Settings, RotateCcw, CircleDashed } from 'lucide-react';
+import { Search, MoreVertical, MessageSquare, User, LogOut, RotateCcw, CircleDashed, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
@@ -9,6 +9,7 @@ import ChatList from './ChatList';
 import StatusList from './StatusList';
 import StatusViewer from './StatusViewer';
 import ProfileModal from './ProfileModal';
+import CreateGroupModal from './CreateGroupModal';
 
 interface SidebarProps {
     onChatSelect: (chat: any) => void;
@@ -27,6 +28,9 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
     const [activeTab, setActiveTab] = useState<'chats' | 'status'>('chats');
     const [selectedStatusGroup, setSelectedStatusGroup] = useState<any>(null);
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+    const [chatRefreshKey, setChatRefreshKey] = useState(0);
+    const [statusRefreshKey, setStatusRefreshKey] = useState(0);
 
     useEffect(() => {
         const fetchSuggested = async () => {
@@ -133,6 +137,12 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                     )}
                 </div>
                 <div className="flex items-center space-x-3 text-[#54656f] dark:text-[#aebac1]">
+                    <Users
+                        size={22}
+                        className="cursor-pointer transition-premium hover:text-[#128c7e] dark:hover:text-white"
+                        title="New Group"
+                        onClick={() => setShowCreateGroupModal(true)}
+                    />
                     <CircleDashed 
                         size={22} 
                         className={`cursor-pointer transition-premium ${activeTab === 'status' ? 'text-whatsapp-green' : 'hover:text-[#128c7e] dark:hover:text-white'}`} 
@@ -152,7 +162,14 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
 
                         {showMenu && (
                             <div className="absolute right-0 top-10 z-[60] w-52 rounded-md bg-white py-2 shadow-2xl dark:bg-[#233138] border border-black/5 dark:border-white/5">
-                                 <button
+                                <button
+                                    onClick={() => { setShowCreateGroupModal(true); setShowMenu(false); }}
+                                    className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-[#3b4a54] hover:bg-[#f5f6f6] dark:text-[#d1d7db] dark:hover:bg-[#182229] transition-colors"
+                                >
+                                    <Users size={18} />
+                                    <span>New Group</span>
+                                </button>
+                                <button
                                     onClick={() => { setShowProfileModal(true); setShowMenu(false); }}
                                     className="flex w-full items-center space-x-3 px-4 py-3 text-left text-sm text-[#3b4a54] hover:bg-[#f5f6f6] dark:text-[#d1d7db] dark:hover:bg-[#182229] transition-colors"
                                 >
@@ -234,11 +251,12 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                         )}
                     </div>
                 ) : activeTab === 'status' ? (
-                    <StatusList onStatusSelect={(group) => setSelectedStatusGroup(group)} />
+                    <StatusList onStatusSelect={(group) => setSelectedStatusGroup(group)} refreshKey={statusRefreshKey} />
                 ) : (
                     <ChatList
                         onChatSelect={onChatSelect}
                         selectedChatId={selectedChatId}
+                        refreshKey={chatRefreshKey}
                         emptyState={
                             <div className="flex flex-col items-center justify-center p-6 text-center">
                                 <p className="text-sm font-semibold text-[#111b21] dark:text-[#e9edef] mb-4">Start a conversation</p>
@@ -281,10 +299,20 @@ export default function Sidebar({ onChatSelect, selectedChatId }: SidebarProps) 
                 <StatusViewer 
                     statusGroup={selectedStatusGroup} 
                     onClose={() => setSelectedStatusGroup(null)} 
+                    onDeleted={() => setStatusRefreshKey(prev => prev + 1)}
                 />
             )}
             {showProfileModal && (
                 <ProfileModal onClose={() => setShowProfileModal(false)} />
+            )}
+            {showCreateGroupModal && (
+                <CreateGroupModal
+                    onClose={() => setShowCreateGroupModal(false)}
+                    onCreated={(group) => {
+                        setChatRefreshKey(prev => prev + 1);
+                        onChatSelect(group);
+                    }}
+                />
             )}
         </div>
     );

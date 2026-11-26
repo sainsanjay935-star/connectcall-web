@@ -8,16 +8,21 @@ const sendMessage = async (req, res) => {
         return res.status(400).json({ message: 'Invalid data passed into request' });
     }
 
-    const newMessage = {
-        sender: req.user.userId,
-        content: content || '',
-        chat: chatId,
-        messageType: messageType || 'text',
-        fileUrl: fileUrl || '',
-        replyTo: replyTo || null
-    };
-
     try {
+        const isParticipant = await Chat.exists({ _id: chatId, participants: req.user.userId });
+        if (!isParticipant) {
+            return res.status(403).json({ message: 'Not authorized to send messages in this chat' });
+        }
+
+        const newMessage = {
+            sender: req.user.userId,
+            content: content || '',
+            chat: chatId,
+            messageType: messageType || 'text',
+            fileUrl: fileUrl || '',
+            replyTo: replyTo || null
+        };
+
         let message = await Message.create(newMessage);
         message = await message.populate('sender', 'username profilePhoto');
         message = await message.populate('chat');
@@ -39,6 +44,11 @@ const sendMessage = async (req, res) => {
 
 const allMessages = async (req, res) => {
     try {
+        const isParticipant = await Chat.exists({ _id: req.params.chatId, participants: req.user.userId });
+        if (!isParticipant) {
+            return res.status(403).json({ message: 'Not authorized to view messages in this chat' });
+        }
+
         const messages = await Message.find({ chat: req.params.chatId })
             .populate('sender', 'username profilePhoto email')
             .populate('chat')

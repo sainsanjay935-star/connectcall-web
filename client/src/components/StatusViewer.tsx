@@ -1,19 +1,35 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Eye, Trash2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { getApiBaseUrl } from '@/utils/constants';
+import axios from 'axios';
 
 interface StatusViewerProps {
     statusGroup: any;
     onClose: () => void;
+    onDeleted?: (statusId: string) => void;
 }
 
-export default function StatusViewer({ statusGroup, onClose }: StatusViewerProps) {
+export default function StatusViewer({ statusGroup, onClose, onDeleted }: StatusViewerProps) {
+    const { user, token } = useAuth();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [progress, setProgress] = useState(0);
 
-    const items = statusGroup.items;
+    const items = statusGroup.items || [];
     const currentItem = items[currentIndex];
+    const isOwnStatus = statusGroup.user?._id === user?.id;
+
+    useEffect(() => {
+        if (!currentItem?._id || !token || isOwnStatus) return;
+
+        axios.post(
+            `${getApiBaseUrl()}/api/status/view/${currentItem._id}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+        ).catch(err => console.error('Status view tracking failed:', err));
+    }, [currentItem?._id, token, isOwnStatus]);
 
     useEffect(() => {
         const duration = 5000; // 5 seconds per status
@@ -49,6 +65,22 @@ export default function StatusViewer({ statusGroup, onClose }: StatusViewerProps
         }
     };
 
+    const handleDelete = async () => {
+        if (!currentItem?._id || !token) return;
+        if (!window.confirm('Delete this status update?')) return;
+        try {
+            await axios.delete(`${getApiBaseUrl()}/api/status/${currentItem._id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            onDeleted?.(currentItem._id);
+            onClose();
+        } catch (err) {
+            console.error('Delete status failed:', err);
+        }
+    };
+
+    if (!currentItem) return null;
+
     return (
         <div className="fixed inset-0 z-[100] flex flex-col bg-black text-white">
             {/* Progress Bars */}
@@ -76,9 +108,22 @@ export default function StatusViewer({ statusGroup, onClose }: StatusViewerProps
                         <p className="text-[10px] opacity-70">{new Date(currentItem.createdAt).toLocaleString()}</p>
                     </div>
                 </div>
-                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-premium">
-                    <X size={24} />
-                </button>
+                <div className="flex items-center space-x-2">
+                    {isOwnStatus && (
+                        <>
+                            <span className="flex items-center space-x-1 text-xs bg-white/10 px-2.5 py-1 rounded-full">
+                                <Eye size={14} />
+                                <span>{currentItem.seenBy?.length || 0}</span>
+                            </span>
+                            <button onClick={handleDelete} className="p-2 hover:bg-red-500/20 text-red-400 rounded-full transition-premium" title="Delete status">
+                                <Trash2 size={20} />
+                            </button>
+                        </>
+                    )}
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-premium">
+                        <X size={24} />
+                    </button>
+                </div>
             </div>
 
             {/* Content */}

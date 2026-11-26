@@ -1,25 +1,44 @@
 const User = require('../models/User');
+const Chat = require('../models/Chat');
+const Message = require('../models/Message');
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const searchUsers = async (req, res) => {
     try {
         const { query } = req.query;
-        console.log('--- Backend Search Start ---');
-        console.log('Received Query:', query);
-        console.log('Searcher ID:', req.user.userId);
+        if (!query || !query.trim()) {
+            return res.status(400).json({ message: 'Search query is required' });
+        }
 
-        if (!query) return res.status(400).json({ message: 'Search query is required' });
+        const safeQuery = escapeRegex(query.trim());
 
-        // Search by uniqueId or username
+        // Search by uniqueId or username, excluding self and blocked users
         const users = await User.find({
             $or: [
-                { uniqueId: { $regex: query, $options: 'i' } },
-                { username: { $regex: query, $options: 'i' } }
+                { uniqueId: { $regex: safeQuery, $options: 'i' } },
+                { username: { $regex: safeQuery, $options: 'i' } }
             ],
-            _id: { $ne: req.user.userId } // Exclude self
+            _id: { $ne: req.user.userId },
+            isBlocked: { $ne: true }
         }).select('uniqueId username profilePhoto statusMessage isOnline');
 
-        console.log('Users Found Count:', users.length);
-        console.log('Users:', users);
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+const getSuggestedUsers = async (req, res) => {
+    try {
+        const users = await User.find({
+            _id: { $ne: req.user.userId },
+            isBlocked: { $ne: true }
+        })
+            .select('uniqueId username profilePhoto statusMessage isOnline')
+            .sort({ createdAt: -1 })
+            .limit(10);
+
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });

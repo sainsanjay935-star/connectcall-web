@@ -13,29 +13,36 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [connected, setConnected] = useState(false);
 
     useEffect(() => {
-        if (user) {
+        if (user && token) {
             const SOCKET_URL = getSocketUrl();
-            const newSocket = io(SOCKET_URL);
+            const newSocket = io(SOCKET_URL, {
+                auth: { token }
+            });
 
             newSocket.on('connect', () => {
                 setConnected(true);
                 newSocket.emit('setup', user);
             });
 
+            newSocket.on('disconnect', () => setConnected(false));
             newSocket.on('connected', () => console.log('Socket setup complete'));
 
             setSocket(newSocket);
 
             return () => {
                 newSocket.disconnect();
+                setConnected(false);
             };
+        } else {
+            setSocket(null);
+            setConnected(false);
         }
-    }, [user]);
+    }, [user?.id, token]);
 
     return (
         <SocketContext.Provider value={{ socket, connected }}>

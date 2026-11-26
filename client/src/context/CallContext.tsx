@@ -3,11 +3,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, PhoneOff, Phone } from 'lucide-react';
 import { useWebRTC } from '@/hooks/useWebRTC';
+import { useSocket } from '@/context/SocketContext';
 import CallScreen from '@/components/CallScreen';
 import IncomingCallModal from '@/components/IncomingCallModal';
 
 interface CallContextType {
-    callUser: (id: string, isAudioOnly?: boolean) => void;
+    callUser: (id: string, isAudioOnly?: boolean, chatId?: string) => void;
     answerCall: () => void;
     leaveCall: () => void;
     receivingCall: boolean;
@@ -19,7 +20,9 @@ interface CallContextType {
 const CallContext = createContext<CallContextType | undefined>(undefined);
 
 export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { socket } = useSocket();
     const [targetUserId, setTargetUserId] = useState<string | null>(null);
+    const [activeChatId, setActiveChatId] = useState<string | null>(null);
     const [isCalling, setIsCalling] = useState(false);
     const [ringingAudio, setRingingAudio] = useState<HTMLAudioElement | null>(null);
 
@@ -69,17 +72,31 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [receivingCall, callAccepted, ringingAudio]);
 
-    const handleCallUser = (id: string, isAudioOnly: boolean = false) => {
+    const handleCallUser = (id: string, isAudioOnly: boolean = false, chatId?: string) => {
         setTargetUserId(id);
+        setActiveChatId(chatId || null);
         setIsCalling(true);
         callUser(id, isAudioOnly);
     };
 
-    const handleLeaveCall = () => {
+    const handleLeaveCall = React.useCallback(() => {
+        if (isCalling && !callAccepted && activeChatId) {
+            socket?.emit('missed-call', { chatId: activeChatId, callType });
+        }
         setIsCalling(false);
-        setTargetUserId(null); // Clear target user on leave
+        setTargetUserId(null);
+        setActiveChatId(null);
         leaveCall();
-    };
+    }, [isCalling, callAccepted, activeChatId, socket, callType, leaveCall]);
+
+    // Auto-timeout outgoing call after 30s if unanswered
+    useEffect(() => {
+        if (!isCalling || callAccepted) return;
+        const timer = setTimeout(() => {
+            handleLeaveCall();
+        }, 30000);
+        return () => clearTimeout(timer);
+    }, [isCalling, callAccepted, handleLeaveCall]);
 
     return (
         <CallContext.Provider value={{

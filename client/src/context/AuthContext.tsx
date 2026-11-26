@@ -36,9 +36,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const storedToken = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
+
         if (storedToken && storedUser) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
+            try {
+                const parsedUser = JSON.parse(storedUser);
+                setToken(storedToken);
+                setUser(parsedUser);
+
+                // Sync latest profile, role, and block status from server
+                axios.get(`${getApiBaseUrl()}/api/auth/me`, {
+                    headers: { Authorization: `Bearer ${storedToken}` }
+                }).then((res) => {
+                    const freshUser: User = {
+                        ...res.data,
+                        id: res.data._id || res.data.id
+                    };
+                    localStorage.setItem('user', JSON.stringify(freshUser));
+                    setUser(freshUser);
+                }).catch((err) => {
+                    const status = err.response?.status;
+                    if (status === 401 || status === 403) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        setToken(null);
+                        setUser(null);
+                    }
+                });
+            } catch {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
         }
         setLoading(false);
     }, []);

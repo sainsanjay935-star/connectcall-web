@@ -1,6 +1,11 @@
+require('dotenv').config({ path: require('path').join(__dirname, 'server', '.env') });
 const mongoose = require('mongoose');
 
-const uri = "mongodb+srv://amit:%23MitS%40in3355%21@amit.glxpqpz.mongodb.net/connectcall?retryWrites=true&w=majority";
+const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!uri) {
+    console.error('Missing MONGODB_URI environment variable.');
+    process.exit(1);
+}
 
 async function listUsers() {
     try {

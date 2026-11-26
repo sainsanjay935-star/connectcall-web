@@ -37,6 +37,14 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
         }
     }, [remoteStream]);
 
+    // Sync speaker toggle with remote audio/video element
+    React.useEffect(() => {
+        if (userVideoRef.current) {
+            userVideoRef.current.muted = !isSpeakerOn;
+            userVideoRef.current.volume = isSpeakerOn ? 1 : 0;
+        }
+    }, [isSpeakerOn, userVideoRef]);
+
     const formatDuration = (seconds: number) => {
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;
@@ -157,7 +165,8 @@ export default function CallScreen({ name, myVideoRef, userVideoRef, onEndCall, 
 
                 <button
                     onClick={toggleVideo}
-                    className={`p-3.5 rounded-full transition-all active:scale-90 ${!isVideoOff ? 'bg-white/20 text-white' : 'text-white/60'}`}
+                    disabled={isAudioOnly}
+                    className={`p-3.5 rounded-full transition-all active:scale-90 ${isAudioOnly ? 'opacity-40 cursor-not-allowed text-white/40' : (!isVideoOff ? 'bg-white/20 text-white' : 'text-white/60')}`}
                 >
                     {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
                 </button>

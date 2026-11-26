@@ -22,11 +22,12 @@ export default function MessageInput({ chatId, onMessageSent, replyingTo, clearR
     const { token } = useAuth();
     const { socket } = useSocket();
     const [content, setContent] = useState('');
-    const [typing, setTyping] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recorder] = useState(new VoiceRecorder());
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const typingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isTypingRef = React.useRef(false);
 
     const startRecording = async () => {
         try {
@@ -117,6 +118,11 @@ export default function MessageInput({ chatId, onMessageSent, replyingTo, clearR
     const sendMessage = async () => {
         if (!content.trim()) return;
 
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = null;
+        }
+        isTypingRef.current = false;
         socket?.emit('stop typing', chatId);
         const encryptedContent = encryptMessage(content);
         setContent('');
@@ -142,21 +148,21 @@ export default function MessageInput({ chatId, onMessageSent, replyingTo, clearR
 
         if (!socket) return;
 
-        if (!typing) {
-            setTyping(true);
+        if (!isTypingRef.current) {
+            isTypingRef.current = true;
             socket.emit('typing', chatId);
         }
 
-        let lastTypingTime = new Date().getTime();
-        const timerLength = 3000;
-        setTimeout(() => {
-            const timeNow = new Date().getTime();
-            const timeDiff = timeNow - lastTypingTime;
-            if (timeDiff >= timerLength && typing) {
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            if (isTypingRef.current) {
                 socket.emit('stop typing', chatId);
-                setTyping(false);
+                isTypingRef.current = false;
             }
-        }, timerLength);
+        }, 3000);
     };
 
     const [recordTime, setRecordTime] = useState(0);

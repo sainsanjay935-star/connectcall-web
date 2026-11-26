@@ -195,12 +195,12 @@ export default function ChatWindow({ chat, onBack }: ChatWindowProps) {
                             <Video
                                 size={20}
                                 className="cursor-pointer hover:text-whatsapp-green dark:hover:text-white transition-premium"
-                                onClick={() => callUser(otherParticipant?._id, false)}
+                                onClick={() => callUser(otherParticipant?._id, false, chat._id)}
                             />
                             <Phone
                                 size={18}
                                 className="cursor-pointer hover:text-whatsapp-green dark:hover:text-white transition-premium"
-                                onClick={() => callUser(otherParticipant?._id, true)}
+                                onClick={() => callUser(otherParticipant?._id, true, chat._id)}
                             />
                         </>
                     )}

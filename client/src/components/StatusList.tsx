@@ -4,42 +4,44 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getApiBaseUrl } from '@/utils/constants';
 import axios from 'axios';
-import { Plus, User } from 'lucide-react';
+import { Plus, User, Eye } from 'lucide-react';
 
 interface StatusListProps {
     onStatusSelect: (statusGroup: any) => void;
+    refreshKey?: number;
 }
 
-export default function StatusList({ onStatusSelect }: StatusListProps) {
+export default function StatusList({ onStatusSelect, refreshKey = 0 }: StatusListProps) {
     const { token, user } = useAuth();
     const [statusGroups, setStatusGroups] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchStatuses = async () => {
+        if (!token) return;
+        try {
+            const baseUrl = getApiBaseUrl();
+            const response = await axios.get(`${baseUrl}/api/status`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setStatusGroups(response.data);
+        } catch (err) {
+            console.error('Fetch status error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchStatuses = async () => {
-            try {
-                const baseUrl = getApiBaseUrl();
-                const response = await axios.get(`${baseUrl}/api/status`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setStatusGroups(response.data);
-            } catch (err) {
-                console.error('Fetch status error:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
+        fetchStatuses();
+    }, [token, refreshKey]);
 
-        if (token) fetchStatuses();
-    }, [token]);
-
-    const handleUploadClick = () => {
-        // This will be handled by a file input in the parent or a modal
+    const handleUploadClick = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*,video/*';
-        input.onchange = async (e: any) => {
-            const file = e.target.files[0];
+        input.onchange = async (event: any) => {
+            const file = event.target.files[0];
             if (!file) return;
 
             const formData = new FormData();
@@ -58,8 +60,7 @@ export default function StatusList({ onStatusSelect }: StatusListProps) {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
-                // Refresh statuses
-                window.location.reload(); 
+                await fetchStatuses();
             } catch (err) {
                 console.error('Upload status error:', err);
             }
@@ -75,21 +76,41 @@ export default function StatusList({ onStatusSelect }: StatusListProps) {
     return (
         <div className="flex flex-col h-full bg-white dark:bg-[#111b21] overflow-y-auto custom-scrollbar">
             {/* My Status */}
-            <div className="p-4 flex items-center space-x-4 cursor-pointer hover:bg-[#f5f6f6] dark:hover:bg-[#202c33] transition-premium" onClick={handleUploadClick}>
-                <div className="relative">
-                    <div className="h-12 w-12 rounded-full border-2 border-whatsapp-green p-0.5">
-                        <div className="h-full w-full rounded-full overflow-hidden bg-[#dfe5e7]">
-                            {user?.profilePhoto ? <img src={user.profilePhoto} className="h-full w-full object-cover" /> : <User size={24} className="m-auto mt-2 text-[#54656f]" />}
+            <div
+                className="p-4 flex items-center justify-between cursor-pointer hover:bg-[#f5f6f6] dark:hover:bg-[#202c33] transition-premium"
+                onClick={() => myStatusGroup ? onStatusSelect(myStatusGroup) : handleUploadClick()}
+            >
+                <div className="flex items-center space-x-4">
+                    <div className="relative">
+                        <div className={`h-12 w-12 rounded-full border-2 p-0.5 ${myStatusGroup ? 'border-whatsapp-green' : 'border-gray-300 dark:border-[#2a3942]'}`}>
+                            <div className="h-full w-full rounded-full overflow-hidden bg-[#dfe5e7]">
+                                {user?.profilePhoto ? <img src={user.profilePhoto} className="h-full w-full object-cover" /> : <User size={24} className="m-auto mt-2 text-[#54656f]" />}
+                            </div>
                         </div>
+                        <button
+                            type="button"
+                            onClick={handleUploadClick}
+                            title="Add status update"
+                            className="absolute bottom-0 right-0 bg-whatsapp-green rounded-full p-0.5 border-2 border-white dark:border-[#111b21] hover:scale-110 transition-transform"
+                        >
+                            <Plus size={14} className="text-white" />
+                        </button>
                     </div>
-                    <div className="absolute bottom-0 right-0 bg-whatsapp-green rounded-full p-0.5 border-2 border-white dark:border-[#111b21]">
-                        <Plus size={14} className="text-white" />
+                    <div>
+                        <h3 className="font-semibold text-[15px] dark:text-[#e9edef]">My Status</h3>
+                        <p className="text-xs text-[#667781] dark:text-[#8696a0]">
+                            {myStatusGroup
+                                ? `${myStatusGroup.items.length} update${myStatusGroup.items.length > 1 ? 's' : ''} • Tap to view`
+                                : 'Tap to add status update'}
+                        </p>
                     </div>
                 </div>
-                <div>
-                    <h3 className="font-semibold text-[15px] dark:text-[#e9edef]">My Status</h3>
-                    <p className="text-xs text-[#667781] dark:text-[#8696a0]">Tap to add status update</p>
-                </div>
+                {myStatusGroup && (
+                    <span className="flex items-center space-x-1 text-xs text-[#667781] dark:text-[#8696a0]">
+                        <Eye size={14} />
+                        <span>{myStatusGroup.items[myStatusGroup.items.length - 1]?.seenBy?.length || 0}</span>
+                    </span>
+                )}
             </div>
 
             <div className="bg-[#f0f2f5] dark:bg-[#111b21] px-4 py-3">

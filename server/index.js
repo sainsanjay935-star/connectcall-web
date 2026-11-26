@@ -84,106 +84,165 @@ app.get('/', (req, res) => {
     res.send('ConnectCall API is running');
 });
 
+const jwt = require('jsonwebtoken');
 const Message = require('./models/Message');
 const User = require('./models/User');
+const Chat = require('./models/Chat');
+const { getJwtSecret } = require('./middleware/auth');
 
-// Socket.io logic
-const users = new Map(); // socketId -> userId
+// Socket.io JWT authentication middleware
+io.use(async (socket, next) => {
+    try {
+        const token = socket.handshake.auth?.token ||
+            socket.handshake.headers?.authorization?.replace('Bearer ', '');
+
+        if (!token) {
+            return next(new Error('Authentication error: token required'));
+        }
+
+        const decoded = jwt.verify(token, getJwtSecret());
+        const user = await User.findById(decoded.userId).select('isBlocked');
+        if (!user) {
+            return next(new Error('Authentication error: user not found'));
+        }
+        if (user.isBlocked) {
+            return next(new Error('Authentication error: account is blocked'));
+        }
+
+        socket.userId = user._id.toString();
+        next();
+    } catch (err) {
+        next(new Error('Authentication error: invalid token'));
+    }
+});
+
+// Track multi-tab presence: userId -> Set<socketId> and socketId -> userId
+const onlineUsers = new Map();
+const socketToUser = new Map();
+
+const isChatParticipant = async (chatId, userId) => {
+    if (!chatId || !userId) return false;
+    return Boolean(await Chat.exists({ _id: chatId, participants: userId }));
+};
 
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    const authUserId = socket.userId;
+    console.log('A user connected:', socket.id, 'user:', authUserId);
 
-    socket.on('setup', async (userData) => {
-        const userId = userData._id || userData.id;
-        if (!userId) return;
+    socket.on('setup', async () => {
+        if (!authUserId) return;
 
-        socket.join(userId);
-        users.set(socket.id, userId);
+        socket.join(authUserId);
+        socketToUser.set(socket.id, authUserId);
 
-        // Update user status to online
-        await User.findByIdAndUpdate(userId, { isOnline: true });
-        socket.broadcast.emit('user-status-change', { userId, isOnline: true });
+        if (!onlineUsers.has(authUserId)) {
+            onlineUsers.set(authUserId, new Set());
+        }
+        const userSockets = onlineUsers.get(authUserId);
+        const wasOffline = userSockets.size === 0;
+        userSockets.add(socket.id);
+
+        if (wasOffline) {
+            await User.findByIdAndUpdate(authUserId, { isOnline: true });
+            socket.broadcast.emit('user-status-change', { userId: authUserId, isOnline: true });
+        }
 
         socket.emit('connected');
-        console.log('User setup:', userId);
     });
 
-    socket.on('join chat', (room) => {
-        socket.join(room);
-        console.log('User Joined Room: ' + room);
+    socket.on('join chat', async (room) => {
+        try {
+            if (await isChatParticipant(room, authUserId)) {
+                socket.join(room);
+            }
+        } catch (err) {
+            console.error('Join chat error:', err);
+        }
     });
 
-    socket.on('typing', (room) => socket.in(room).emit('typing'));
-    socket.on('stop typing', (room) => socket.in(room).emit('stop typing'));
+    socket.on('typing', (room) => {
+        if (room && socket.rooms.has(room)) {
+            socket.in(room).emit('typing');
+        }
+    });
+    socket.on('stop typing', (room) => {
+        if (room && socket.rooms.has(room)) {
+            socket.in(room).emit('stop typing');
+        }
+    });
 
-    // WebRTC Signaling
-    socket.on('call-user', ({ to, offer, from, name, callType }) => {
-        console.log(`[RTC] Call initiated: FROM ${from} (${name}) TO ${to} Type: ${callType}`);
-        socket.to(to).emit('incoming-call', { from, offer, name, callType });
+    // WebRTC Signaling (always bind `from` to verified socket.userId)
+    socket.on('call-user', ({ to, offer, name, callType }) => {
+        if (!to) return;
+        socket.to(to).emit('incoming-call', { from: authUserId, offer, name, callType });
     });
 
     socket.on('answer-call', ({ to, answer }) => {
-        console.log(`[RTC] Call answered: BY ${users.get(socket.id)} TO ${to}`);
-        socket.to(to).emit('call-answered', { answer });
+        if (!to) return;
+        socket.to(to).emit('call-answered', { answer, from: authUserId });
     });
 
     socket.on('ice-candidate', ({ to, candidate }) => {
-        console.log(`[RTC] ICE Candidate: FROM ${users.get(socket.id)} TO ${to}`);
-        socket.to(to).emit('ice-candidate', { candidate });
+        if (!to) return;
+        socket.to(to).emit('ice-candidate', { candidate, from: authUserId });
     });
 
     socket.on('call-signal', ({ to, signal }) => {
-        const from = users.get(socket.id);
-        console.log(`[RTC] Unified Signal (${signal.type || 'candidate'}): FROM ${from} TO ${to}`);
-        socket.to(to).emit('call-signal', { signal, from });
+        if (!to) return;
+        socket.to(to).emit('call-signal', { signal, from: authUserId });
     });
 
     socket.on('end-call', ({ to }) => {
-        console.log(`[RTC] Call ended: BY ${users.get(socket.id)} FOR ${to}`);
-        socket.to(to).emit('call-ended');
+        if (!to) return;
+        socket.to(to).emit('call-ended', { from: authUserId });
     });
 
-    socket.on('missed-call', async ({ to, from, chatId }) => {
+    socket.on('missed-call', async ({ chatId, callType }) => {
         try {
+            if (!(await isChatParticipant(chatId, authUserId))) return;
+
+            const label = callType === 'audio' ? '📞 Missed Voice Call' : '📹 Missed Video Call';
             const message = new Message({
-                sender: from,
-                content: '📞 Missed Video Call',
+                sender: authUserId,
+                content: label,
                 chat: chatId
             });
             const savedMessage = await message.save();
-            const populatedMessage = await Message.findById(savedMessage._id).populate('sender', 'username profilePhoto');
+            const populatedMessage = await Message.findById(savedMessage._id)
+                .populate('sender', 'username profilePhoto')
+                .populate('chat');
 
-            // Send to both participants
+            await Chat.findByIdAndUpdate(chatId, { lastMessage: savedMessage._id });
             io.in(chatId).emit('message received', populatedMessage);
         } catch (err) {
             console.error('Missed call log error:', err);
         }
     });
 
-    socket.on('new message', (newMessageReceived) => {
-        var chat = newMessageReceived.chat;
-        if (!chat.participants) return console.log('chat.participants not defined');
+    socket.on('new message', async (newMessageReceived) => {
+        const chat = newMessageReceived?.chat;
+        if (!chat?.participants) return;
+
+        const senderId = (newMessageReceived.sender?._id || newMessageReceived.sender)?.toString();
+        if (senderId !== authUserId) return;
 
         chat.participants.forEach((participant) => {
-            const participantId = participant._id || participant;
-            const senderId = newMessageReceived.sender._id || newMessageReceived.sender;
-
-            if (participantId == senderId) return;
+            const participantId = (participant._id || participant).toString();
+            if (participantId === authUserId) return;
             socket.to(participantId).emit('message received', newMessageReceived);
         });
     });
 
-    socket.on('add-reaction', async ({ messageId, emoji, userId, chatId }) => {
+    socket.on('add-reaction', async ({ messageId, emoji, chatId }) => {
         try {
-            const message = await Message.findById(messageId);
-            if (message) {
-                // Remove existing reaction from this user if any
-                message.reactions = message.reactions.filter(r => r.user.toString() !== userId);
-                // Add new reaction
-                message.reactions.push({ user: userId, emoji });
+            if (!messageId || !emoji || !(await isChatParticipant(chatId, authUserId))) return;
+
+            const message = await Message.findOne({ _id: messageId, chat: chatId });
+            if (message && !message.isDeleted) {
+                message.reactions = message.reactions.filter(r => r.user.toString() !== authUserId);
+                message.reactions.push({ user: authUserId, emoji });
                 await message.save();
 
-                // Notify others in the chat
                 io.in(chatId).emit('reaction-added', { messageId, reactions: message.reactions });
             }
         } catch (err) {
@@ -194,33 +253,42 @@ io.on('connection', (socket) => {
     socket.on('edit-message', async ({ messageId, content, chatId }) => {
         try {
             const message = await Message.findById(messageId);
-            if (message && !message.isDeleted) {
-                message.content = content;
-                message.isEdited = true;
-                await message.save();
-                io.in(chatId).emit('message-edited', { messageId, content, isEdited: true });
-            }
+            if (!message || message.isDeleted) return;
+            if (message.sender.toString() !== authUserId) return;
+
+            message.content = content;
+            message.isEdited = true;
+            await message.save();
+            io.in(chatId || message.chat.toString()).emit('message-edited', { messageId, content, isEdited: true });
         } catch (err) {
             console.error('Edit error:', err);
         }
     });
 
-    socket.on('mark-as-read', async ({ messageIds, userId, chatId }) => {
+    socket.on('mark-as-read', async ({ messageIds, chatId }) => {
         try {
+            if (!Array.isArray(messageIds) || messageIds.length === 0) return;
+            if (!(await isChatParticipant(chatId, authUserId))) return;
+
             await Message.updateMany(
-                { _id: { $in: messageIds }, readBy: { $ne: userId } },
-                { $addToSet: { readBy: userId } }
+                { _id: { $in: messageIds }, chat: chatId, readBy: { $ne: authUserId } },
+                { $addToSet: { readBy: authUserId } }
             );
-            io.in(chatId).emit('messages-seen', { messageIds, userId, chatId });
+            io.in(chatId).emit('messages-seen', { messageIds, userId: authUserId, chatId });
         } catch (err) {
             console.error('Mark as read error:', err);
         }
     });
 
-    socket.on('message-delivered', async ({ messageId, userId, chatId }) => {
+    socket.on('message-delivered', async ({ messageId, chatId }) => {
         try {
-            await Message.findByIdAndUpdate(messageId, { $addToSet: { deliveredTo: userId } });
-            io.in(chatId).emit('message-delivered-update', { messageId, userId, chatId });
+            if (!messageId || !(await isChatParticipant(chatId, authUserId))) return;
+
+            await Message.findOneAndUpdate(
+                { _id: messageId, chat: chatId },
+                { $addToSet: { deliveredTo: authUserId } }
+            );
+            io.in(chatId).emit('message-delivered-update', { messageId, userId: authUserId, chatId });
         } catch (err) {
             console.error('Delivery status error:', err);
         }
@@ -229,33 +297,41 @@ io.on('connection', (socket) => {
     socket.on('delete-message', async ({ messageId, chatId }) => {
         try {
             const message = await Message.findById(messageId);
-            if (message) {
-                message.isDeleted = true;
-                message.content = 'This message was deleted';
-                await message.save();
-                io.in(chatId).emit('message-deleted', { messageId });
-            }
+            if (!message) return;
+            if (message.sender.toString() !== authUserId) return;
+
+            message.isDeleted = true;
+            message.content = 'This message was deleted';
+            await message.save();
+            io.in(chatId || message.chat.toString()).emit('message-deleted', { messageId });
         } catch (err) {
             console.error('Delete error:', err);
         }
     });
 
     socket.on('disconnect', async () => {
-        const userId = users.get(socket.id);
-        if (userId) {
-            // Update user status to offline
-            await User.findByIdAndUpdate(userId, {
-                isOnline: false,
-                lastSeen: new Date()
-            });
-            socket.broadcast.emit('user-status-change', {
-                userId,
-                isOnline: false,
-                lastSeen: new Date()
-            });
+        const userId = socketToUser.get(socket.id);
+        socketToUser.delete(socket.id);
+
+        if (userId && onlineUsers.has(userId)) {
+            const userSockets = onlineUsers.get(userId);
+            userSockets.delete(socket.id);
+
+            if (userSockets.size === 0) {
+                onlineUsers.delete(userId);
+                const lastSeen = new Date();
+                await User.findByIdAndUpdate(userId, {
+                    isOnline: false,
+                    lastSeen
+                });
+                socket.broadcast.emit('user-status-change', {
+                    userId,
+                    isOnline: false,
+                    lastSeen
+                });
+            }
         }
         console.log('User disconnected:', socket.id);
-        users.delete(socket.id);
     });
 });
 

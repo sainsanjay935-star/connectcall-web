@@ -7,7 +7,7 @@ exports.uploadStatus = async (req, res) => {
         if (!mediaUrl) return res.status(400).json({ message: 'Media URL is required' });
 
         const status = new Status({
-            user: req.user._id,
+            user: req.user.userId,
             mediaUrl,
             type: type || 'image',
             caption: caption || ''
@@ -23,18 +23,23 @@ exports.uploadStatus = async (req, res) => {
 
 exports.getAllStatuses = async (req, res) => {
     try {
-        // In a real app, we would only get statuses from friends/contacts.
-        // For this project, we'll get statuses from all users except blocked ones.
+        // Get statuses from all non-blocked users
         const statuses = await Status.find()
-            .populate('user', 'username profilePhoto')
+            .populate('user', 'username profilePhoto isBlocked')
             .sort({ createdAt: -1 });
 
-        // Group statuses by user
+        // Group statuses by user, skipping orphaned or blocked users
         const groupedStatuses = statuses.reduce((acc, status) => {
+            if (!status.user || status.user.isBlocked) return acc;
+
             const userId = status.user._id.toString();
             if (!acc[userId]) {
                 acc[userId] = {
-                    user: status.user,
+                    user: {
+                        _id: status.user._id,
+                        username: status.user.username,
+                        profilePhoto: status.user.profilePhoto
+                    },
                     items: []
                 };
             }
@@ -52,7 +57,7 @@ exports.viewStatus = async (req, res) => {
     try {
         const { statusId } = req.params;
         await Status.findByIdAndUpdate(statusId, {
-            $addToSet: { seenBy: req.user._id }
+            $addToSet: { seenBy: req.user.userId }
         });
         res.json({ message: 'Status viewed' });
     } catch (err) {
@@ -66,7 +71,7 @@ exports.deleteStatus = async (req, res) => {
         const status = await Status.findById(statusId);
         if (!status) return res.status(404).json({ message: 'Status not found' });
         
-        if (status.user.toString() !== req.user._id.toString()) {
+        if (status.user.toString() !== req.user.userId.toString()) {
             return res.status(403).json({ message: 'Unauthorized' });
         }
 

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { uploadStatus, getAllStatuses, viewStatus, deleteStatus } = require('../controllers/statusController');
-const { protect } = require('../middleware/authMiddleware');
+const auth = require('../middleware/auth');
 
-router.post('/', protect, uploadStatus);
-router.get('/', protect, getAllStatuses);
-router.post('/view/:statusId', protect, viewStatus);
-router.delete('/:statusId', protect, deleteStatus);
+router.post('/', auth, uploadStatus);
+router.get('/', auth, getAllStatuses);
+router.post('/view/:statusId', auth, viewStatus);
+router.delete('/:statusId', auth, deleteStatus);
 
 module.exports = router;
