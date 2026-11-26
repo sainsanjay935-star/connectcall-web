@@ -10,13 +10,22 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const { login } = useAuth();
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
+        setIsSubmitting(true);
         try {
-            await login(email, password);
+            await login(email.trim(), password);
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to login');
+            if (!err.response) {
+                setError('Cannot reach backend server. If Render is waking up, wait 30 seconds and try again.');
+            } else {
+                setError(err.response?.data?.message || 'Failed to login');
+            }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -56,9 +65,10 @@ export default function LoginPage() {
 
                     <button
                         type="submit"
-                        className="w-full rounded bg-whatsapp-green py-2 font-medium text-white transition hover:bg-whatsapp-green-dark"
+                        disabled={isSubmitting}
+                        className="w-full rounded bg-whatsapp-green py-2 font-medium text-white transition hover:bg-whatsapp-green-dark disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        Login
+                        {isSubmitting ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 

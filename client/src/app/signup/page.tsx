@@ -11,13 +11,26 @@ export default function SignupPage() {
     const [password, setPassword] = useState('');
     const { signup } = useAuth();
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters.');
+            return;
+        }
+        setIsSubmitting(true);
         try {
-            await signup(username, email, password);
+            await signup(username.trim(), email.trim(), password);
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to sign up');
+            if (!err.response) {
+                setError('Cannot reach backend server. If Render is waking up, wait 30 seconds and try again.');
+            } else {
+                setError(err.response?.data?.message || 'Failed to sign up');
+            }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -67,9 +80,10 @@ export default function SignupPage() {
 
                     <button
                         type="submit"
-                        className="w-full rounded bg-whatsapp-green py-2 font-medium text-white transition hover:bg-whatsapp-green-dark"
+                        disabled={isSubmitting}
+                        className="w-full rounded bg-whatsapp-green py-2 font-medium text-white transition hover:bg-whatsapp-green-dark disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        Sign Up
+                        {isSubmitting ? 'Creating account...' : 'Sign Up'}
                     </button>
                 </form>
 
